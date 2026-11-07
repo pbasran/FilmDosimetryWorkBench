@@ -1,3 +1,5 @@
+<a href="https://www.vaiderlab.org"><img src="assets/vaiderlab-logo.png" alt="VAIDER Lab" width="160"></a>
+
 # Film Dosimetry Workbench: Quick Guide
 
 Open `film-dosimetry.html` in Chrome, Safari or Firefox (double-click). Everything runs locally; nothing is uploaded.
@@ -38,3 +40,6 @@ Open `film-dosimetry.html` in Chrome, Safari or Firefox (double-click). Everythi
 
 ## Citation
 Scholl et al. A method for embedding cells on radiochromic film for in vitro high-precision radiation dosimetry. Medical Physics, 2025. doi:10.1002/mp.18004
+
+---
+VAIDER Lab (Veterinary AI in Diagnostic Imaging and Radiotherapy), [vaiderlab.org](https://www.vaiderlab.org)

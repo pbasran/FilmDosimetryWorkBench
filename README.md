@@ -1,6 +1,8 @@
+<p align="left"><a href="https://www.vaiderlab.org"><img src="assets/vaiderlab-logo.png" alt="VAIDER Lab: Veterinary AI in Diagnostic Imaging and Radiotherapy" width="220"></a></p>
+
 # Film Dosimetry Workbench
 
-[![Launch the app](https://img.shields.io/badge/Launch%20the%20app-Film%20Dosimetry%20Workbench-2b6a4d?style=for-the-badge)](https://pbasran.github.io/FilmDosimetryWorkBench/)
+[![Launch the app](https://img.shields.io/badge/Launch%20the%20app-Film%20Dosimetry%20Workbench-000000?style=for-the-badge&labelColor=f5c242)](https://pbasran.github.io/FilmDosimetryWorkBench/)
 
 **[Launch the app](https://pbasran.github.io/FilmDosimetryWorkBench/)** (GitHub Pages). A single-file, browser-based tool for radiochromic film dosimetry (VAIDER Lab). Everything runs locally in the browser; scans are never uploaded.
 
