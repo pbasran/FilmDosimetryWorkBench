@@ -1,6 +1,8 @@
 # Film Dosimetry Workbench
 
-A single-file, browser-based tool for radiochromic film dosimetry (VAIDER Lab). Everything runs locally in the browser; scans are never uploaded.
+[![Launch the app](https://img.shields.io/badge/Launch%20the%20app-Film%20Dosimetry%20Workbench-2b6a4d?style=for-the-badge)](https://pbasran.github.io/FilmDosimetryWorkBench/)
+
+**[Launch the app](https://pbasran.github.io/FilmDosimetryWorkBench/)** (GitHub Pages). A single-file, browser-based tool for radiochromic film dosimetry (VAIDER Lab). Everything runs locally in the browser; scans are never uploaded.
 
 **Open `index.html` (a launcher page with a Launch button) or `film-dosimetry.html` directly, in Chrome, Safari or Firefox.** TIFF scans are read with UTIF.js, which is loaded from a CDN, so the first TIFF load needs an internet connection (JPEG and PNG scans do not).
 
