@@ -35,3 +35,6 @@ Open `film-dosimetry.html` in Chrome, Safari or Firefox (double-click). Everythi
 - Doses beyond your highest calibration point are extrapolated; keep films within the calibrated range. Add steps above your highest analysed dose (for example 25-30 Gy) so the curve is anchored there.
 - Scroll to zoom, hold Space to pan. The export saves `.tif`/`.dcm` directly when the file is opened from disk; the web-hosted version delivers them in a .zip.
 - DICOM is for research use only; it is not tied to a treatment plan.
+
+## Citation
+Scholl et al. A method for embedding cells on radiochromic film for in vitro high-precision radiation dosimetry. Medical Physics, 2025. doi:10.1002/mp.18004
