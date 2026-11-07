@@ -1,0 +1,2104 @@
+<title>Film Dosimetry Workbench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js"></script>
+<style>
+/* Layout: slim header with three workflow tabs; each tab is a large image viewer beside a control column. */
+:root{
+  --bg:#e9ece7; --panel:#f6f7f3; --panel2:#eceee8; --ink:#1b2320; --muted:#5a665f; --line:#cfd5cc;
+  --accent:#2b6a4d; --accent-ink:#ffffff; --accent-soft:#d8e8de;
+  --hc:#d9780a; --vc:#0a8ba0; --r:#c4352b; --g:#23844a; --b:#2c5fc0; --warn:#8f5200; --warn-bg:#f7e8cc; --bad:#b3261e;
+  --viewer:#161a18; --viewer-ink:#cdd6d0;
+  --font:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101412; --panel:#181d1a; --panel2:#1f2521; --ink:#e4eae6; --muted:#97a49d; --line:#2c3531;
+    --accent:#62bf92; --accent-ink:#0b1a12; --accent-soft:#1f3a2c;
+    --hc:#ffab33; --vc:#33d1e8; --r:#ef6f65; --g:#5fcf86; --b:#76a0f2; --warn:#e9b25a; --warn-bg:#3a2d12; --bad:#f2837c;
+    --viewer:#0b0d0c; --viewer-ink:#cdd6d0; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101412; --panel:#181d1a; --panel2:#1f2521; --ink:#e4eae6; --muted:#97a49d; --line:#2c3531;
+  --accent:#62bf92; --accent-ink:#0b1a12; --accent-soft:#1f3a2c;
+  --hc:#ffab33; --vc:#33d1e8; --r:#ef6f65; --g:#5fcf86; --b:#76a0f2; --warn:#e9b25a; --warn-bg:#3a2d12; --bad:#f2837c;
+  --viewer:#0b0d0c; --viewer-ink:#cdd6d0; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--font);padding-block:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance}
+.app{max-width:1500px;margin:0 auto;padding-block:14px 40px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;justify-content:space-between}
+.brand{display:flex;flex-direction:column;gap:1px}
+.brand h1{font-size:18px;letter-spacing:-.01em}
+.brand span{color:var(--muted);font-size:12.5px}
+.tabs{display:flex;gap:4px;background:var(--panel2);padding:3px;border-radius:8px;border:1px solid var(--line)}
+.tabs button{border:0;background:transparent;color:var(--muted);font:500 13.5px var(--font);padding:7px 14px;border-radius:6px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.tabs button b{font-family:var(--mono);font-weight:500;color:var(--accent);margin-right:6px}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,canvas:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:13px}
+.banner button{margin-left:auto}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,500px);gap:14px;align-items:start}
+@media (max-width:1020px){.layout{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.grow{flex:1 1 auto}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+label.f.inline{flex-direction:row;align-items:center;gap:6px}
+input[type=number],input[type=text],select{font:13px var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0;width:100%}
+input[type=text]{font-family:var(--font)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.btn{font:500 13px var(--font);border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:7px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:4px 8px;font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;background:var(--panel2);color:var(--muted);font:500 12.5px var(--font);padding:6px 11px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.vwrap{background:var(--viewer);border-radius:10px;border:1px solid var(--line);position:relative;overflow:hidden}
+.vtools{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+canvas.view{display:block;width:100%;height:min(66vh,640px);min-height:340px;touch-action:none;cursor:crosshair}
+.vinfo{position:absolute;left:8px;bottom:8px;font:11.5px var(--mono);color:var(--viewer-ink);background:rgba(0,0,0,.55);padding:3px 7px;border-radius:5px;pointer-events:none;max-width:calc(100% - 16px)}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;color:var(--viewer-ink);text-align:center;padding:20px}
+.empty p{margin:0;max-width:40ch;opacity:.85}
+.table-wrap{overflow:auto;max-height:310px;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font:12px var(--mono);font-variant-numeric:tabular-nums}
+th,td{padding:4px 6px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-weight:500;font-family:var(--font);font-size:11.5px;z-index:1}
+td:first-child,th:first-child{text-align:left}
+tr:hover td,tr.hot td{background:var(--accent-soft)}
+td input{width:66px;padding:3px 5px;font-size:12px;text-align:right}
+td .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px}
+td .x:hover{color:var(--bad)}
+.cR{color:var(--r)}.cG{color:var(--g)}.cB{color:var(--b)}
+.fits{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+.fit{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fit h3{font-size:13px}
+.fit canvas{width:100%;height:190px;display:block}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font:12px var(--mono);font-variant-numeric:tabular-nums}
+.kv span:nth-child(odd){color:var(--muted)}
+.hint{color:var(--muted);font-size:12.5px;margin:0}
+.eq{font:12.5px var(--mono);color:var(--muted)}
+.status{font-size:12.5px;color:var(--muted)}
+.status.bad{color:var(--bad)}
+.tag{font:11.5px var(--mono);background:var(--accent-soft);color:var(--accent);padding:2px 7px;border-radius:99px}
+details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
+details[open] summary{margin-bottom:8px}
+textarea{width:100%;min-height:70px;font:12px var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px}
+.cbar{display:flex;flex-direction:column;gap:2px}
+.cbar canvas{width:100%;height:14px;border-radius:3px;display:block}
+.cbar div{display:flex;justify-content:space-between;font:11.5px var(--mono);color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.progress{height:6px;border-radius:3px;background:var(--panel2);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:13px;max-width:min(560px,calc(100vw - 32px));z-index:50;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+.sr{position:absolute;left:-9999px}
+.measure{font:12.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.cviews{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:start}
+@media (max-width:760px){.cviews{grid-template-columns:minmax(0,1fr)}}
+.cviews figure{margin:0;display:flex;flex-direction:column;gap:3px}
+.cviews figcaption,.rcap{font:11.5px var(--mono);color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.cviews canvas{width:100%;background:var(--viewer);border-radius:6px;cursor:crosshair;display:block;touch-action:none}
+.sl{display:grid;grid-template-columns:34px minmax(0,1fr) 92px;gap:8px;align-items:center;font:12.5px var(--mono)}
+.sl input[type=number]{padding:4px 6px}
+.rgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.rgrid{grid-template-columns:minmax(0,1fr)}}
+.rgrid figure{margin:0;display:flex;flex-direction:column;gap:3px}
+.rgrid canvas{width:100%;height:auto;background:var(--viewer);border-radius:6px;image-rendering:pixelated;display:block}
+.shiftbox{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--panel2)}
+.shifthead{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}.shifthead b{color:var(--ink);font-size:13px}
+.shiftrow{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.pad{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,36px);gap:4px;grid-template-areas:". up ." "left zero right" ". down ."}
+#shUp{grid-area:up}#shDown{grid-area:down}#shLeft{grid-area:left}#shRight{grid-area:right}#shZero{grid-area:zero}
+.sb{border:1px solid var(--line);background:var(--panel);border-radius:7px;font-size:15px;cursor:pointer;line-height:1;touch-action:none;user-select:none}
+.sb.hcol{color:var(--hc);border-color:var(--hc)}.sb.vcol{color:var(--vc);border-color:var(--vc)}.sb.zero{color:var(--muted);font:500 12px var(--mono)}
+.sb:hover{background:var(--panel2)}.sb:active{transform:translateY(1px)}
+.shiftnum{display:grid;grid-template-columns:repeat(2,minmax(110px,1fr));gap:8px;flex:1 1 220px}
+label.f.hcol{color:var(--hc)}label.f.vcol{color:var(--vc)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:baseline}.hdot{background:var(--hc)}.vdot{background:var(--vc)}
+.seg button .dot{border:1px solid rgba(0,0,0,.35)}
+.profrow{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:12px;align-items:start}
+@media (max-width:980px){.profrow{grid-template-columns:minmax(0,1fr)}}
+.profside{display:flex;flex-direction:column;gap:8px}
+.profside .shiftrow{gap:10px}.profside .shiftnum{grid-template-columns:minmax(0,1fr);flex:1 1 100%}
+.optrow{gap:8px;flex-wrap:wrap}
+.pw{position:relative}.pw canvas.ovl{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;background:transparent}
+.rgrid canvas,.cmpmap{cursor:crosshair;touch-action:none}
+#cmpProf{width:100%;height:230px;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:block}
+pre.report{font:12px/1.5 var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:10px;margin:0;overflow:auto;max-height:420px;white-space:pre}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>Film Dosimetry Workbench</h1>
+      <span>Radiochromic film calibration and dose maps. Runs entirely in your browser; scans never leave this computer.</span>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Workflow">
+      <button role="tab" id="tabbtn-cal" aria-selected="true" aria-controls="tab-cal"><b>1</b>Calibrate</button>
+      <button role="tab" id="tabbtn-dose" aria-selected="false" aria-controls="tab-dose"><b>2</b>Dose map and export</button>
+      <button role="tab" id="tabbtn-cmp" aria-selected="false" aria-controls="tab-cmp"><b>3</b>Compare</button>
+    </div>
+  </header>
+
+  <div class="banner" id="exBanner" hidden>
+    <span><strong>Synthetic example loaded.</strong> The scans and doses on screen are generated, not measured. Open your own scan to replace them.</span>
+    <button class="btn sm" id="exClear">Clear example</button>
+  </div>
+
+  <!-- ============ CALIBRATE ============ -->
+  <section id="tab-cal" role="tabpanel" aria-labelledby="tabbtn-cal">
+    <div class="layout">
+      <div class="col">
+        <div class="vtools">
+          <div class="seg" role="group" aria-label="Calibration layout">
+            <button id="lySingle" aria-pressed="true" title="One scan containing several film pieces">One scan, many pieces</button>
+            <button id="lyMulti" aria-pressed="false" title="A separate image for each dose">One image per dose</button>
+          </div>
+          <span id="singleTools"><button class="btn" id="calOpenBtn">Open calibration scan</button></span>
+          <span id="multiTools" class="row" hidden>
+            <button class="btn" id="calAddBtn">Add images…</button>
+            <label class="f inline" title="Share of each image (centred) that is averaged. Keeps film edges out of the measurement.">Central ROI
+              <input type="number" id="roiPct" min="5" max="100" step="5" value="60" style="width:64px"> %</label>
+            <button class="btn sm" id="roiApply" title="Reset every image's ROI to the central region">Apply to all</button>
+          </span>
+          <input class="sr" type="file" id="calFile" accept="image/*,.tif,.tiff" aria-label="Calibration scan file">
+          <input class="sr" type="file" id="calFiles" accept="image/*,.tif,.tiff" multiple aria-label="Calibration images, one per dose">
+          <div class="seg" role="group" aria-label="ROI tool">
+            <button id="mPatch" aria-pressed="true">Patch</button>
+            <button id="mRect" aria-pressed="false">Rectangle</button>
+            <button id="mPan" aria-pressed="false">Pan</button>
+          </div>
+          <label class="f inline" title="Side of the square averaged around each click">Patch size
+            <input type="number" id="patchN" min="3" max="1001" step="2" value="101" style="width:72px"> px</label>
+          <button class="btn sm" id="calFit">Fit view</button>
+          <button class="btn sm" id="calOne">1:1</button>
+        </div>
+        <div class="vwrap">
+          <canvas class="view" id="calCanvas" tabindex="0" aria-label="Calibration scan viewer"></canvas>
+          <div class="empty" id="calEmpty">
+            <strong id="calEmptyTitle">No calibration scan open</strong>
+            <p id="calEmptyText">Open or drop a scan of film pieces irradiated to known doses (JPEG, PNG or TIFF). Click each piece to sample its colour, then type its dose.</p>
+            <button class="btn primary" id="calEmptyBtn">Open calibration scan</button>
+          </div>
+          <div class="vinfo" id="calInfo" hidden></div>
+        </div>
+        <p class="hint" id="calHint">Click adds a patch, or drag a rectangle. Scroll to zoom, hold Space or use Pan to move. Samples are averaged on the raw scan pixels (colour management off).</p>
+      </div>
+
+      <div class="col">
+        <div class="panel">
+          <h2>Signal definition</h2>
+          <div class="row">
+            <div class="seg" role="group" aria-label="Blue-channel renormalization">
+              <button id="rnBlue" aria-pressed="true">Blue-channel renormalization</button>
+              <button id="rnNone" aria-pressed="false">Raw channel</button>
+            </div>
+          </div>
+          <div class="eq" id="eqText">x<sub>c</sub> = (c − B) / max, for c = R, G &nbsp;·&nbsp; dose = A / (x<sub>c</sub> + C) + B</div>
+          <p class="hint">Subtracting the blue channel removes the part of the signal that does not track dose (thickness and scanner non-uniformity), as in the lab's MATLAB routine.</p>
+        </div>
+
+        <div class="panel">
+          <div class="row"><h2 class="grow">Calibration points <span class="tag" id="ptCount">0</span></h2>
+            <button class="btn sm" id="ptControl" title="Add an unirradiated (control) film as the 0 Gy point. Pick its scan; a central ROI is sampled and set to 0 Gy.">Add control (0 Gy)…</button>
+            <button class="btn sm" id="ptClear">Clear all</button></div>
+          <input class="sr" type="file" id="ptCtrlFile" accept="image/*,.tif,.tiff" multiple aria-label="Control (unirradiated) film scans">
+          <div class="table-wrap"><table id="ptTable" aria-label="Calibration points">
+            <thead><tr><th id="thFirst">#</th><th>Dose (Gy)</th><th>R</th><th>G</th><th>B</th><th class="cR">x<sub>R</sub></th><th class="cG">x<sub>G</sub></th><th class="cR">Δ<sub>R</sub></th><th class="cG">Δ<sub>G</sub></th><th></th></tr></thead>
+            <tbody id="ptBody"></tbody></table></div>
+          <p class="hint">R, G, B are 8-bit-equivalent means. Δ is fitted dose minus entered dose, in Gy. Points without a dose are ignored by the fit. A control is an unirradiated film scanned with the batch; it enters the fit as 0 Gy. Its ROI can be moved by clicking in its image.</p>
+          <details><summary>Paste values from MATLAB or a spreadsheet</summary>
+            <textarea id="pasteBox" placeholder="One row per line.&#10;7 numbers: meanR, sdR, meanG, sdG, meanB, sdB, dose (Cal_48wells.m output plus a dose)&#10;4 numbers: R, G, B, dose" spellcheck="false"></textarea>
+            <div class="row"><button class="btn sm" id="pasteAdd">Add rows</button><span class="status" id="pasteMsg"></span></div>
+          </details>
+        </div>
+
+        <div class="panel">
+          <h2>Fit</h2>
+          <div class="status" id="fitStatus">Add at least 3 points with doses to fit.</div>
+          <div class="fits" id="fits"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Calibration file</h2>
+          <div class="grid2">
+            <label class="f">Film type<select id="mFilm"><option>EBT3 (low dose)</option><option>EBT-XD (high dose)</option><option>Other</option></select></label>
+            <label class="f">Scanner<input type="text" id="mScan" value="Epson 12000XL, 300 dpi, 24-bit"></label>
+            <label class="f">Beam<input type="text" id="mBeam" value="6 MV photons"></label>
+            <label class="f">Irradiation date<input type="text" id="mDate" placeholder="YYYY-MM-DD"></label>
+          </div>
+          <label class="f">Notes<input type="text" id="mNotes" placeholder="Batch, lot number, scan delay, orientation"></label>
+          <div class="row">
+            <button class="btn primary" id="calSave">Save calibration (.json)</button>
+            <button class="btn" id="calCsv">Points (.csv)</button>
+            <button class="btn" id="calLoadBtn">Load calibration…</button>
+            <input class="sr" type="file" id="calLoad" accept=".json,application/json" aria-label="Calibration file to load">
+          </div>
+          <div class="status" id="calSrc"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DOSE ============ -->
+  <section id="tab-dose" role="tabpanel" aria-labelledby="tabbtn-dose" hidden>
+    <div class="layout">
+      <div class="col">
+        <div class="vtools">
+          <button class="btn" id="doseOpenBtn">Open film scan</button>
+          <input class="sr" type="file" id="doseFile" accept="image/*,.tif,.tiff" aria-label="Film scan file">
+          <div class="seg" role="group" aria-label="View">
+            <button id="vScan" aria-pressed="true">Scan</button>
+            <button id="vDose" aria-pressed="false" disabled>Dose map</button>
+          </div>
+          <div class="seg" role="group" aria-label="Tool">
+            <button id="tPan" aria-pressed="true">Pan</button>
+            <button id="tCrop" aria-pressed="false" title="Draw the region to convert and export">Export region</button>
+            <button id="tLevel" aria-pressed="false" title="Drag along a film edge that should be horizontal or vertical to straighten the scan">Level edge</button>
+            <button id="tMeas" aria-pressed="false" title="Mean dose inside a rectangle">Measure</button>
+          </div>
+          <button class="btn sm" id="doseFitView">Fit view</button>
+        </div>
+        <div class="vwrap">
+          <canvas class="view" id="doseCanvas" tabindex="0" aria-label="Film scan and dose map viewer" style="cursor:grab"></canvas>
+          <div class="empty" id="doseEmpty">
+            <strong>No film scan open</strong>
+            <p>Open or drop the scan of the irradiated film. Include some white scanner background around it, then draw the export region over the film only.</p>
+            <button class="btn primary" id="doseEmptyBtn">Open film scan</button>
+          </div>
+          <div class="vinfo" id="doseInfo" hidden></div>
+        </div>
+        <div class="cbar" id="cbarWrap" hidden><canvas id="cbar" width="512" height="14" aria-label="Dose colour scale"></canvas>
+          <div><span id="cb0">0</span><span id="cb1"></span><span id="cb2"></span></div></div>
+        <div class="measure" id="measOut" aria-live="polite"></div>
+      </div>
+
+      <div class="col">
+        <div class="panel">
+          <h2>Calibration in use</h2>
+          <div class="status" id="useCal">None yet. Fit one on the Calibrate tab or load a calibration file.</div>
+          <div class="row"><button class="btn sm" id="useLoadBtn">Load calibration…</button></div>
+        </div>
+
+        <div class="panel">
+          <h2>Straighten and crop</h2>
+          <div class="row">
+            <button class="btn primary" id="autoFit" disabled title="Find the film in the scan, rotate it level and crop to it">Auto crop and straighten</button>
+            <button class="btn sm" id="autoReset" disabled title="Back to the original scan, no rotation, no crop">Reset</button>
+            <label class="f inline"><input type="checkbox" id="autoOnOpen" checked> on open</label>
+          </div>
+          <div class="grid2">
+            <label class="f">Rotation (° counter-clockwise)<input type="number" id="rotDeg" step="0.05" min="-45" max="45" value="0"></label>
+            <label class="f">Edge inset (mm)<input type="number" id="insetMm" step="0.5" min="0" max="20" value="2"></label>
+          </div>
+          <div class="row">
+            <button class="btn sm" data-nudge="-1">−1°</button><button class="btn sm" data-nudge="-0.1">−0.1°</button>
+            <button class="btn sm" data-nudge="0.1">+0.1°</button><button class="btn sm" data-nudge="1">+1°</button>
+            <button class="btn sm" id="rot90" title="Turn the scan a quarter turn clockwise">90° ⟳</button>
+          </div>
+          <div class="status" id="xfInfo">Open a film scan.</div>
+          <p class="hint">Auto finds the film against the scanner background and levels its outline, then crops to it. The film's edges need not be perpendicular to the beam: for a manual fix type a rotation, use <b>Level edge</b> to drag along any edge or a field edge, then draw the <b>Export region</b>. Rotation resamples the scan (bilinear); the original file is unchanged.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Conversion</h2>
+          <div class="f">
+            <div class="row" style="justify-content:space-between"><span>Channel weights</span><span>red <b id="wRv" class="cR">0%</b> · green <b id="wGv" class="cG">100%</b></span></div>
+            <input type="range" id="wR" min="0" max="100" value="0" aria-label="Red channel weight (green takes the remainder)"></div>
+          <div class="grid2">
+            <label class="f">Pixel binning (n × n)<input type="number" id="binF" min="1" max="32" step="1" value="4"></label>
+            <label class="f">Scan resolution (dpi)<input type="number" id="dpi" min="50" max="4800" step="1" value="300"></label>
+            <label class="f">Clip dose at (Gy)<input type="number" id="clipMax" min="0.1" step="any" value="15"></label>
+            <label class="f">Display max (Gy)<input type="number" id="dispMax" min="0.1" step="any" value="10"></label>
+          </div>
+          <div class="status" id="pxInfo"></div>
+          <div class="row">
+            <button class="btn primary" id="doConvert" disabled>Convert to dose</button>
+            <span class="status" id="convMsg"></span>
+          </div>
+          <div class="progress" id="prog" hidden><i></i></div>
+          <p class="hint">Each n × n block of pixels is averaged per channel, converted to a net signal, then to dose with the fitted curve. Dose is never negative and is clipped at the limit above. The limit follows 1.2 × your highest calibration dose (rounded up to a multiple of 5 Gy) until you change it.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Export</h2>
+          <div class="status" id="exInfo">Convert a film first.</div>
+          <div class="grid2">
+            <label class="f">DICOM patient name<input type="text" id="dcmName" value="FILM^DOSE"></label>
+            <label class="f">DICOM patient ID<input type="text" id="dcmId" value="FILM001"></label>
+          </div>
+          <div class="row">
+            <button class="btn primary" id="exTif32" disabled>TIFF, 32-bit float (Gy)</button>
+            <button class="btn" id="exTif16" disabled>TIFF, 16-bit</button>
+            <button class="btn" id="exDcm" disabled>DICOM RTDOSE</button>
+            <button class="btn" id="exPng" disabled>Preview PNG</button>
+          </div>
+          <p class="hint" id="exHint">The 32-bit TIFF stores dose in Gy directly. The 16-bit TIFF and the DICOM store integers with a scale factor (written into the file). DICOM export is for research use: the film plane is mapped to the patient X–Y plane at the origin, and the dose is not tied to a treatment plan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPARE ============ -->
+  <section id="tab-cmp" role="tabpanel" aria-labelledby="tabbtn-cmp" hidden>
+    <div class="layout">
+      <div class="col">
+        <div class="panel">
+          <div class="row"><h2 class="grow">Reference dose (DICOM RTDOSE)</h2>
+            <button class="btn" id="cmpOpen">Open RTDOSE…</button>
+            <input class="sr" type="file" id="cmpFile" accept=".dcm,.dicom,application/dicom" aria-label="DICOM RTDOSE file"></div>
+          <div class="status" id="cmpInfo">Open the calculated dose (RTDOSE) to compare with the film. Grids aligned to the patient axes are supported, including 90°-rotated ones.</div>
+          <div class="cviews">
+            <figure><canvas id="cvAx" width="320" height="240" aria-label="Axial view"></canvas><figcaption><span>Axial · z slice</span><span id="cAxT"></span></figcaption></figure>
+            <figure><canvas id="cvCo" width="320" height="240" aria-label="Coronal view"></canvas><figcaption><span>Coronal · y slice</span><span id="cCoT"></span></figcaption></figure>
+            <figure><canvas id="cvSa" width="320" height="240" aria-label="Sagittal view"></canvas><figcaption><span>Sagittal · x slice</span><span id="cSaT"></span></figcaption></figure>
+          </div>
+          <div class="sl"><span>x</span><input type="range" id="slX" disabled aria-label="x position"><span><input type="number" id="nmX" step="any" disabled aria-label="x position in mm"></span></div>
+          <div class="sl"><span>y</span><input type="range" id="slY" disabled aria-label="y position"><span><input type="number" id="nmY" step="any" disabled aria-label="y position in mm"></span></div>
+          <div class="sl"><span>z</span><input type="range" id="slZ" disabled aria-label="z position"><span><input type="number" id="nmZ" step="any" disabled aria-label="z position in mm"></span></div>
+          <div class="row">
+            <span class="status">Plane to compare</span>
+            <div class="seg" role="group" aria-label="Plane normal">
+              <button id="pnY" aria-pressed="true" title="Plane of constant y (film lying flat under a beam from above)">Coronal (y)</button>
+              <button id="pnZ" aria-pressed="false">Axial (z)</button>
+              <button id="pnX" aria-pressed="false">Sagittal (x)</button>
+            </div>
+          </div>
+          <p class="hint">The slider for the chosen plane sets its position. The other two sliders (or a click in a view) place the <b>centre of the film</b> in that plane. Magenta lines mark the plane. Millimetres, DICOM patient coordinates.</p>
+        </div>
+
+        <div class="panel" id="cmpResPanel">
+          <div class="row"><h2 class="grow">Results</h2><span class="status" id="cmpRunMsg"></span></div>
+          <div class="rgrid">
+            <figure><canvas id="rcFilm" width="10" height="10"></canvas><div class="rcap"><span>Film</span><span id="rcFilmT"></span></div></figure>
+            <figure><canvas id="rcRef" width="10" height="10"></canvas><div class="rcap"><span>RTDOSE (resampled to film)</span><span id="rcRefT"></span></div></figure>
+            <figure><canvas id="rcDiff" width="10" height="10"></canvas><div class="rcap"><span>Film − RTDOSE</span><span id="rcDiffT"></span></div></figure>
+            <figure><canvas id="rcGam" width="10" height="10"></canvas><div class="rcap"><span>Gamma</span><span id="rcGamT"></span></div></figure>
+          </div>
+          <div class="row">
+            <span class="status">Profile</span>
+            <div class="seg" role="group" aria-label="Profile direction">
+              <button id="pfH" aria-pressed="true"><i class="dot hdot"></i>Horizontal line (film x →)</button><button id="pfV" aria-pressed="false"><i class="dot vdot"></i>Vertical line (film y ↓)</button>
+            </div>
+            <input type="range" id="pfPos" min="0" max="1" value="0" style="flex:1 1 160px" aria-label="Profile position" disabled>
+            <span class="status" id="pfPosT"></span>
+          </div>
+          <div class="profrow">
+            <div class="profmain">
+              <canvas id="cmpProf" width="900" height="230" aria-label="Profile comparison"></canvas>
+              <p class="hint">The coloured line with an arrow on each map above is where the profile is taken; the arrow points the way the profile's horizontal axis increases. Click or drag on any map to move it, or use the slider.</p>
+            </div>
+            <div class="profside">
+          <div class="shiftbox sidebox">
+            <div class="shifthead"><b>Move the film over the dose</b><span>Directions are as you see the film image in the maps. The curves update live.</span></div>
+            <div class="shiftrow">
+              <div class="pad" role="group" aria-label="Move film">
+                <button class="sb vcol" id="shUp" title="Move film up (hold to repeat)" aria-label="Move film up">▲</button>
+                <button class="sb hcol" id="shLeft" title="Move film left (hold to repeat)" aria-label="Move film left">◀</button>
+                <button class="sb zero" id="shZero" title="Zero the shift" aria-label="Zero shift">0</button>
+                <button class="sb hcol" id="shRight" title="Move film right (hold to repeat)" aria-label="Move film right">▶</button>
+                <button class="sb vcol" id="shDown" title="Move film down (hold to repeat)" aria-label="Move film down">▼</button>
+              </div>
+              <div class="shiftnum">
+                <label class="f hcol">Step (mm)<select id="shStep"><option>0.1</option><option>0.25</option><option selected>0.5</option><option>1</option><option>2</option><option>5</option></select></label>
+                <label class="f hcol">Right + / left − (mm)<input type="number" id="shX" step="0.1" value="0"></label>
+                <label class="f vcol">Down + / up − (mm)<input type="number" id="shY" step="0.1" value="0"></label>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn" id="cmpAlign" disabled title="Search the film position (and optionally orientation) that best matches the dose. Starts from the dose maximum of each image, then refines">Auto-align</button>
+            <label class="f inline"><input type="checkbox" id="alignOr"> also search rotation and flips</label>
+          </div>
+          <div class="row optrow">
+            <button class="btn" id="cmpOpt" disabled title="Search the film shift (x, y) that minimizes the total dose difference between film and RTDOSE over the film area">Optimize shift</button>
+            <button class="btn" id="cmpUndo" disabled title="Return to the shift before the last Auto-align or Optimize">Undo</button>
+            <label class="f inline">Minimize <select id="optMetric"><option value="l1" selected>total |film − RTDOSE|</option><option value="l2">sum of squares</option></select></label>
+          </div>
+          <div class="status" id="optMsg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="panel">
+          <h2>Film placement</h2>
+          <div class="status" id="cmpFilmInfo">Convert a film on tab 2 first.</div>
+          <div class="grid2">
+            <label class="f">Rotate film<select id="orRot"><option value="0">0°</option><option value="90">90° clockwise</option><option value="180">180°</option><option value="270">270° clockwise</option></select></label>
+            <label class="f">Flip<select id="orFlip"><option value="">none</option><option value="h">left–right</option><option value="v">up–down</option><option value="hv">both</option></select></label>
+          </div>
+          <p class="hint">The arrows, Auto-align and Optimize controls are beside the profile in the Results panel.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Normalization and threshold</h2>
+          <label class="f">Normalize both distributions to
+            <select id="nmMode">
+              <option value="none">None (absolute dose, Gy)</option>
+              <option value="max" selected>Maximum dose</option>
+              <option value="high">Mean of high-dose pixels</option>
+              <option value="point">A point in the image</option>
+            </select></label>
+          <div class="grid2">
+            <label class="f" id="nmHighWrap">High-dose pixels ≥ (% of max)<input type="number" id="nmHigh" value="90" min="10" max="100" step="1"></label>
+            <label class="f" id="nmRadWrap">Point averaging radius (mm)<input type="number" id="nmRad" value="1.5" min="0" step="0.5"></label>
+            <label class="f">Ignore pixels below (% of normalization)<input type="number" id="thrPct" value="10" min="0" max="100" step="1"></label>
+            <label class="f">Analysis pixel (mm)<input type="number" id="anPix" value="0.5" min="0.1" step="0.1"></label>
+            <label class="f">Difference map range (± % of norm.)<input type="number" id="diffRange" value="10" min="0.5" step="0.5"></label>
+          </div>
+          <div class="status" id="nmPtInfo"></div>
+          <p class="hint" id="nmHint">Each distribution is divided by its own value (100 %). The threshold is applied to the RTDOSE, so the same pixels are used for both. With no normalization the threshold is a fraction of the RTDOSE maximum in the film area. For the point option, click on the Film or RTDOSE map.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Gamma</h2>
+          <div class="grid2">
+            <label class="f">Dose difference (%)<input type="number" id="gmPct" value="3" min="0.1" step="0.5"></label>
+            <label class="f">Distance to agreement (mm)<input type="number" id="gmDta" value="3" min="0.1" step="0.5"></label>
+            <label class="f">Type<select id="gmType"><option value="global">Global</option><option value="local">Local</option></select></label>
+            <label class="f">Reference distribution<select id="gmRef"><option value="film">Film (measured)</option><option value="dose">RTDOSE</option></select></label>
+          </div>
+          <label class="f inline"><input type="checkbox" id="gmOn" checked> compute gamma</label>
+          <div class="row">
+            <button class="btn primary" id="cmpRun" disabled>Compare</button>
+            <button class="btn" id="cmpExport" disabled>Export report (.txt)</button>
+            <label class="f inline"><input type="checkbox" id="exPix"> include every pixel</label>
+          </div>
+          <div class="progress" id="cmpProg" hidden><i></i></div>
+        </div>
+
+        <div class="panel">
+          <h2>Report</h2>
+          <pre class="report" id="cmpReport">Run a comparison to see the report.</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+'use strict';
+/* ------------------------------------------------------------------ helpers */
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (v, d = 4) => (v === null || v === undefined || !isFinite(v)) ? '–' : Number(v).toPrecision(d);
+const fix = (v, d = 2) => (v === null || v === undefined || !isFinite(v)) ? '–' : v.toFixed(d);
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 4200);
+}
+const tick = () => new Promise(r => setTimeout(r, 0));
+
+/* ------------------------------------------------------------------ state */
+const state = {
+  cal: { scan: null, points: [], mode: 'patch', renorm: 'blue', fit: null, source: '', example: false, hot: null, nextId: 1, layout: 'single' },
+  dose: { scan: null, crop: null, map: null, view: 'scan', tool: 'pan', measure: null, example: false }
+};
+
+/* ------------------------------------------------------------------ scan loading */
+function canvasScan(name, canvas, bits) {
+  const w = canvas.width, h = canvas.height, full = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+  return {
+    name, w, h, max: 255, bits, display: canvas,
+    getRegion(x, y, rw, rh) {
+      const out = new Uint8ClampedArray(rw * rh * 4);
+      for (let r = 0; r < rh; r++) out.set(full.subarray(((y + r) * w + x) * 4, ((y + r) * w + x + rw) * 4), r * rw * 4);
+      return { data: out, stride: 4, w: rw, h: rh };
+    }
+  };
+}
+async function loadScan(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'tif' || ext === 'tiff') return loadTiff(file);
+  let bmp = null;
+  try { bmp = await createImageBitmap(file, { colorSpaceConversion: 'none', imageOrientation: 'none' }); }
+  catch (e) { try { bmp = await createImageBitmap(file); } catch (e2) { bmp = null; } }
+  if (!bmp) {
+    bmp = await new Promise((res, rej) => {
+      const u = URL.createObjectURL(file), im = new Image();
+      im.onload = () => res(im); im.onerror = () => rej(new Error('Could not decode this image.')); im.src = u;
+    });
+  }
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  c.getContext('2d').drawImage(bmp, 0, 0);
+  return canvasScan(file.name, c, 8);
+}
+async function loadTiff(file) {
+  if (!window.UTIF) throw new Error('The TIFF reader did not load. Check your connection or use a JPEG/PNG scan.');
+  const buf = await file.arrayBuffer();
+  const ifds = UTIF.decode(buf); if (!ifds.length) throw new Error('No image found in this TIFF.');
+  const ifd = ifds[0]; UTIF.decodeImage(buf, ifd);
+  const w = ifd.width, h = ifd.height;
+  const bps = ifd.t258 ? ifd.t258[0] : 8, spp = ifd.t277 ? ifd.t277[0] : 1;
+  if (spp < 3) throw new Error('This TIFF is not a colour image (needs R, G and B channels).');
+  if (bps === 16 && ifd.data && ifd.data.length >= w * h * spp * 2) {
+    const raw = ifd.data;
+    // UTIF returns decoded strips as raw bytes in file byte order
+    const bigEndian = false; // UTIF hands back decoded samples in little-endian order for both byte orders
+    const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+    const px = new Uint16Array(w * h * 3);
+    let o = 0;
+    for (let i = 0; i < w * h; i++) {
+      const b = i * spp * 2;
+      px[o++] = dv.getUint16(b, !bigEndian); px[o++] = dv.getUint16(b + 2, !bigEndian); px[o++] = dv.getUint16(b + 4, !bigEndian);
+    }
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d'), id = ctx.createImageData(w, h), d = id.data;
+    for (let i = 0, j = 0; i < w * h; i++, j += 4) { d[j] = px[i * 3] >> 8; d[j + 1] = px[i * 3 + 1] >> 8; d[j + 2] = px[i * 3 + 2] >> 8; d[j + 3] = 255; }
+    ctx.putImageData(id, 0, 0);
+    return {
+      name: file.name, w, h, max: 65535, bits: 16, display: c,
+      getRegion(x, y, rw, rh) {
+        const out = new Uint16Array(rw * rh * 3);
+        for (let r = 0; r < rh; r++) out.set(px.subarray(((y + r) * w + x) * 3, ((y + r) * w + x + rw) * 3), r * rw * 3);
+        return { data: out, stride: 3, w: rw, h: rh };
+      }
+    };
+  }
+  const rgba = UTIF.toRGBA8(ifd);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'); ctx.putImageData(new ImageData(new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, w * h * 4), w, h), 0, 0);
+  return canvasScan(file.name, c, 8);
+}
+function regionStats(scan, x0, y0, w, h) {
+  const reg = scan.getRegion(x0, y0, w, h), d = reg.data, s = reg.stride, n = w * h, inv = 1 / scan.max;
+  const sum = [0, 0, 0], sq = [0, 0, 0];
+  for (let i = 0; i < n; i++) for (let c = 0; c < 3; c++) { const v = d[i * s + c]; sum[c] += v; sq[c] += v * v; }
+  const mean = [], sd = [];
+  for (let c = 0; c < 3; c++) {
+    const m = sum[c] / n; mean.push(m * inv);
+    sd.push(Math.sqrt(Math.max(0, (sq[c] - n * m * m) / Math.max(1, n - 1))) * inv);
+  }
+  return { mean, sd, n };
+}
+
+/* ------------------------------------------------------------------ viewer */
+class Viewer {
+  constructor(canvas, o) {
+    this.cv = canvas; this.o = o; this.src = null; this.scale = 1; this.ox = 0; this.oy = 0;
+    this.zoom = 1; this.px = 0; this.py = 0; this.drag = null; this.space = false;
+    this.ctx = canvas.getContext('2d');
+    new ResizeObserver(() => { this.resize(); }).observe(canvas);
+    canvas.addEventListener('wheel', e => this.wheel(e), { passive: false });
+    canvas.addEventListener('pointerdown', e => this.down(e));
+    canvas.addEventListener('pointermove', e => this.move(e));
+    canvas.addEventListener('pointerup', e => this.up(e));
+    canvas.addEventListener('pointercancel', () => { this.drag = null; this.draw(); });
+    canvas.addEventListener('keydown', e => { if (e.code === 'Space') { this.space = true; e.preventDefault(); } });
+    canvas.addEventListener('keyup', e => { if (e.code === 'Space') this.space = false; });
+    canvas.addEventListener('dragover', e => e.preventDefault());
+    canvas.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && o.onDrop) o.onDrop(f); });
+  }
+  resize() {
+    const r = this.cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (this.cv.width !== w || this.cv.height !== h) { this.cv.width = w; this.cv.height = h; this.dpr = dpr; if (this.src && !this.placed) this.fit(); else this.draw(); }
+    this.dpr = dpr;
+  }
+  setImage(src, scale = 1, ox = 0, oy = 0, keepView = false) {
+    this.src = src; this.scale = scale; this.ox = ox; this.oy = oy;
+    if (!keepView) this.fit(); else this.draw();
+  }
+  extent() { return this.src ? { w: this.src.width * this.scale, h: this.src.height * this.scale, x: this.ox, y: this.oy } : null; }
+  fit(world) {
+    if (!this.src) { this.draw(); return; }
+    const W = this.cv.width, H = this.cv.height, dpr = this.dpr || 1;
+    const e = world || this.o.fitBox?.() || this.extent();
+    this.zoom = Math.min((W - 24 * dpr) / e.w, (H - 24 * dpr) / e.h);
+    this.px = (W - e.w * this.zoom) / 2 - e.x * this.zoom; this.py = (H - e.h * this.zoom) / 2 - e.y * this.zoom;
+    this.placed = true; this.draw();
+  }
+  oneToOne() {
+    if (!this.src) return;
+    const W = this.cv.width, H = this.cv.height, dpr = this.dpr || 1;
+    const cx = (W / 2 - this.px) / this.zoom, cy = (H / 2 - this.py) / this.zoom;
+    this.zoom = dpr; this.px = W / 2 - cx * this.zoom; this.py = H / 2 - cy * this.zoom; this.draw();
+  }
+  centerOn(x, y) { this.px = this.cv.width / 2 - x * this.zoom; this.py = this.cv.height / 2 - y * this.zoom; this.draw(); }
+  toWorld(e) {
+    const r = this.cv.getBoundingClientRect(), dpr = this.dpr || 1;
+    return { x: ((e.clientX - r.left) * dpr - this.px) / this.zoom, y: ((e.clientY - r.top) * dpr - this.py) / this.zoom };
+  }
+  wheel(e) {
+    if (!this.src) return; e.preventDefault();
+    const r = this.cv.getBoundingClientRect(), dpr = this.dpr || 1;
+    const sx = (e.clientX - r.left) * dpr, sy = (e.clientY - r.top) * dpr;
+    const f = Math.exp(-e.deltaY * 0.0015), nz = clamp(this.zoom * f, 0.02 * dpr, 40 * dpr);
+    this.px = sx - (sx - this.px) * (nz / this.zoom); this.py = sy - (sy - this.py) * (nz / this.zoom); this.zoom = nz; this.draw();
+  }
+  down(e) {
+    if (!this.src) return; this.cv.focus({ preventScroll: true }); this.cv.setPointerCapture(e.pointerId);
+    const mode = this.o.getMode();
+    const pan = mode === 'pan' || e.button === 1 || this.space;
+    const w = this.toWorld(e);
+    this.drag = { pan, mode, sx: e.clientX, sy: e.clientY, px: this.px, py: this.py, w0: w, w1: w, moved: false };
+    if (pan) this.cv.style.cursor = 'grabbing';
+  }
+  move(e) {
+    const w = this.toWorld(e);
+    if (this.o.onHover) this.o.onHover(w);
+    if (!this.drag) return;
+    const d = this.drag, dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+    if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true;
+    if (d.pan) { this.px = d.px + dx * (this.dpr || 1); this.py = d.py + dy * (this.dpr || 1); this.draw(); }
+    else { d.w1 = w; this.draw(); }
+  }
+  up(e) {
+    const d = this.drag; this.drag = null; if (!d) return;
+    this.cv.style.cursor = this.o.cursor ? this.o.cursor() : 'crosshair';
+    if (d.pan) { this.draw(); return; }
+    const w = this.toWorld(e);
+    if (d.mode === 'patch') { if (!d.moved && this.o.onPatch) this.o.onPatch(w.x, w.y); }
+    else if (d.mode === 'line') { if (d.moved && this.o.onLine) this.o.onLine(d.w0, w); }
+    else if (d.mode === 'rect') {
+      const x0 = Math.min(d.w0.x, w.x), x1 = Math.max(d.w0.x, w.x), y0 = Math.min(d.w0.y, w.y), y1 = Math.max(d.w0.y, w.y);
+      if (x1 - x0 >= 2 && y1 - y0 >= 2 && this.o.onRect) this.o.onRect(x0, y0, x1, y1);
+    }
+    this.draw();
+  }
+  draw() {
+    const c = this.ctx, W = this.cv.width, H = this.cv.height;
+    c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = css('--viewer'); c.fillRect(0, 0, W, H);
+    if (!this.src) return;
+    c.setTransform(this.zoom, 0, 0, this.zoom, this.px, this.py);
+    c.imageSmoothingEnabled = this.zoom < 2.5 * (this.dpr || 1);
+    c.drawImage(this.src, this.ox, this.oy, this.src.width * this.scale, this.src.height * this.scale);
+    if (this.o.overlay) this.o.overlay(c, this.zoom / (this.dpr || 1) , this.dpr || 1);
+    const d = this.drag;
+    if (d && !d.pan && d.mode === 'line' && d.moved) {
+      c.lineWidth = 1.8 * (this.dpr || 1) / this.zoom; c.strokeStyle = '#ff5ad1'; c.beginPath(); c.moveTo(d.w0.x, d.w0.y); c.lineTo(d.w1.x, d.w1.y); c.stroke();
+    }
+    if (d && !d.pan && d.mode === 'rect' && d.moved) {
+      c.lineWidth = 1.5 * (this.dpr || 1) / this.zoom; c.strokeStyle = '#ffd34d'; c.setLineDash([6 / this.zoom * (this.dpr || 1), 4 / this.zoom * (this.dpr || 1)]);
+      c.strokeRect(Math.min(d.w0.x, d.w1.x), Math.min(d.w0.y, d.w1.y), Math.abs(d.w1.x - d.w0.x), Math.abs(d.w1.y - d.w0.y)); c.setLineDash([]);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ nonlinear fit: dose = A/(x+C) + B */
+function solve3(M, b) {
+  const a = M.map((r, i) => [...r, b[i]]);
+  for (let i = 0; i < 3; i++) {
+    let p = i; for (let r = i + 1; r < 3; r++) if (Math.abs(a[r][i]) > Math.abs(a[p][i])) p = r;
+    if (Math.abs(a[p][i]) < 1e-300) return null;
+    [a[i], a[p]] = [a[p], a[i]];
+    for (let r = i + 1; r < 3; r++) { const f = a[r][i] / a[i][i]; for (let c = i; c < 4; c++) a[r][c] -= f * a[i][c]; }
+  }
+  const x = [0, 0, 0];
+  for (let i = 2; i >= 0; i--) { let s = a[i][3]; for (let c = i + 1; c < 3; c++) s -= a[i][c] * x[c]; x[i] = s / a[i][i]; }
+  return x;
+}
+function inv3(M) {
+  const cols = [0, 1, 2].map(k => solve3(M, [0, 1, 2].map(i => (i === k ? 1 : 0))));
+  if (cols.some(c => !c)) return null;
+  return [0, 1, 2].map(i => [0, 1, 2].map(j => cols[j][i]));
+}
+function sse3(p, xs, ds) {
+  let s = 0;
+  for (let i = 0; i < xs.length; i++) { const den = xs[i] + p[2]; if (den <= 1e-9) return Infinity; const r = p[0] / den + p[1] - ds[i]; s += r * r; }
+  return s;
+}
+function jac(p, xs, ds) {
+  const JtJ = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], Jtr = [0, 0, 0];
+  for (let i = 0; i < xs.length; i++) {
+    const u = 1 / (xs[i] + p[2]), r = p[0] * u + p[1] - ds[i], J = [u, 1, -p[0] * u * u];
+    for (let a = 0; a < 3; a++) { Jtr[a] += J[a] * r; for (let b = 0; b < 3; b++) JtJ[a][b] += J[a] * J[b]; }
+  }
+  return { JtJ, Jtr };
+}
+function levmar(p0, xs, ds) {
+  let p = p0.slice(), sse = sse3(p, xs, ds), lam = 1e-3;
+  if (!isFinite(sse)) return null;
+  for (let it = 0; it < 400; it++) {
+    const { JtJ, Jtr } = jac(p, xs, ds); let ok = false;
+    for (let t = 0; t < 14; t++) {
+      const M = JtJ.map((row, i) => row.map((v, j) => (i === j ? v * (1 + lam) + 1e-30 : v)));
+      const dlt = solve3(M, Jtr.map(v => -v));
+      if (!dlt) { lam *= 10; continue; }
+      const pn = p.map((v, i) => v + dlt[i]), sn = sse3(pn, xs, ds);
+      if (sn < sse) { const rel = (sse - sn) / (sse + 1e-300); p = pn; sse = sn; lam = Math.max(lam / 5, 1e-12); ok = true; if (rel < 1e-13) return { p, sse }; break; }
+      lam *= 5;
+    }
+    if (!ok) break;
+  }
+  return { p, sse };
+}
+const T975 = [0, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.160, 2.145, 2.131, 2.120, 2.110, 2.101, 2.093, 2.086, 2.080, 2.074, 2.069, 2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042];
+function tQuant(df) { if (df < 1) return NaN; if (df <= 30) return T975[df]; const z = 1.96; return z + (z ** 3 + z) / (4 * df) + (5 * z ** 5 + 16 * z ** 3 + 3 * z) / (96 * df * df); }
+function fitCurve(xs, ds, hint) {
+  const n = xs.length; if (n < 3) return null;
+  const xmin = Math.min(...xs); let best = null;
+  // variable projection: for each C, A and B follow from linear least squares on u = 1/(x+C)
+  for (let k = 0; k < 600; k++) {
+    const C = -xmin + Math.pow(10, -4 + (4.8 * k) / 599);
+    let su = 0, sd = 0; const us = xs.map(x => 1 / (x + C));
+    for (let i = 0; i < n; i++) { su += us[i]; sd += ds[i]; }
+    const mu = su / n, md = sd / n; let suu = 0, sud = 0;
+    for (let i = 0; i < n; i++) { suu += (us[i] - mu) ** 2; sud += (us[i] - mu) * (ds[i] - md); }
+    if (suu < 1e-18) continue;
+    const A = sud / suu, B = md - A * mu, s = sse3([A, B, C], xs, ds);
+    if (!best || s < best.sse) best = { p: [A, B, C], sse: s };
+  }
+  const starts = []; if (best) starts.push(best.p); if (hint) starts.push(hint);
+  let res = null;
+  for (const s0 of starts) { const r = levmar(s0, xs, ds); if (r && (!res || r.sse < res.sse)) res = r; }
+  if (!res) return null;
+  const p = res.p, sse = res.sse, md = ds.reduce((a, b) => a + b, 0) / n;
+  const sst = ds.reduce((a, b) => a + (b - md) ** 2, 0);
+  const out = { A: p[0], B: p[1], C: p[2], n, sse, r2: sst > 0 ? 1 - sse / sst : NaN, rmse: Math.sqrt(sse / n), ci: null };
+  if (n > 3) {
+    const { JtJ } = jac(p, xs, ds), I = inv3(JtJ), s2 = sse / (n - 3), t = tQuant(n - 3);
+    if (I) out.ci = [0, 1, 2].map(i => t * Math.sqrt(Math.max(0, s2 * I[i][i])));
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ calibration logic */
+const CH = ['R', 'G'], CHI = { R: 0, G: 1 };
+function netSignal(mean, c) { return state.cal.renorm === 'blue' ? mean[CHI[c]] - mean[2] : mean[CHI[c]]; }
+const calHints = { R: [0.5, -1.5, 0.03], G: [0.55, -1.6, 0.02] };
+let fitTimer;
+function scheduleFit() { clearTimeout(fitTimer); fitTimer = setTimeout(runFit, 120); }
+function runFit() {
+  const cal = state.cal, pts = cal.points.filter(p => p.dose !== null && isFinite(p.dose));
+  const fit = {};
+  for (const c of CH) {
+    const xs = pts.map(p => netSignal(p.mean, c)), ds = pts.map(p => p.dose);
+    fit[c] = fitCurve(xs, ds, calHints[c]);
+  }
+  cal.fit = (fit.R || fit.G) ? { ...fit, renorm: cal.renorm, source: 'fit', n: pts.length } : null;
+  if (cal.fit) cal.source = '';
+  renderFit(); updateResiduals(); updateDoseCalUI();
+}
+function predictDose(f, x) { const den = x + f.C; return den <= 1e-9 ? Infinity : f.A / den + f.B; }
+
+function renderPoints() {
+  const body = $('#ptBody'); body.innerHTML = '';
+  for (const p of state.cal.points) {
+    const tr = document.createElement('tr'); tr.dataset.id = p.id; if (state.cal.hot === p.id) tr.className = 'hot';
+    tr.innerHTML = `<td class="c0"></td><td><input type="number" step="any" min="0" value="${p.dose === null ? '' : p.dose}" aria-label="Dose for point ${p.id} in Gy"></td>
+      <td>${fix(p.mean[0] * 255, 1)}</td><td>${fix(p.mean[1] * 255, 1)}</td><td>${fix(p.mean[2] * 255, 1)}</td>
+      <td class="cR xr"></td><td class="cG xg"></td><td class="cR rr"></td><td class="cG rg"></td>
+      <td><button class="x" title="Remove point" aria-label="Remove point ${p.id}">×</button></td>`;
+    const c0 = tr.querySelector('.c0'), multi = state.cal.layout === 'multi';
+    c0.textContent = (p.control ? '◦ ' : '') + (multi && p.file ? (p.file.length > 22 ? p.file.slice(0, 20) + '…' : p.file) : (p.control ? 'Control' : p.id)); c0.title = (p.control ? 'Control (unirradiated). ' : '') + (p.file || '');
+    const inp = tr.querySelector('input');
+    inp.addEventListener('input', () => { const v = parseFloat(inp.value); p.dose = isFinite(v) ? v : null; scheduleFit(); });
+    tr.querySelector('.x').addEventListener('click', () => { state.cal.points = state.cal.points.filter(q => q !== p); renderPoints(); calView.draw(); scheduleFit(); });
+    tr.addEventListener('mouseenter', () => { state.cal.hot = p.id; calView.draw(); tr.classList.add('hot'); });
+    tr.addEventListener('mouseleave', () => { state.cal.hot = null; calView.draw(); tr.classList.remove('hot'); });
+    tr.addEventListener('click', e => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+      if (p.scan && p.scan !== state.cal.scan) { state.cal.scan = p.scan; setCalImage(p.scan); return; }
+      if (state.cal.scan && p.cx !== undefined && p.w) calView.centerOn(p.cx, p.cy);
+    });
+    body.appendChild(tr);
+  }
+  $('#ptCount').textContent = state.cal.points.length;
+  updateResiduals();
+}
+function updateResiduals() {
+  const f = state.cal.fit;
+  for (const tr of $('#ptBody').children) {
+    const p = state.cal.points.find(q => String(q.id) === tr.dataset.id); if (!p) continue;
+    const xr = netSignal(p.mean, 'R'), xg = netSignal(p.mean, 'G');
+    tr.querySelector('.xr').textContent = fix(xr, 4); tr.querySelector('.xg').textContent = fix(xg, 4);
+    const used = p.dose !== null && isFinite(p.dose);
+    const rr = f && f.R && used ? predictDose(f.R, xr) - p.dose : null, rg = f && f.G && used ? predictDose(f.G, xg) - p.dose : null;
+    tr.querySelector('.rr').textContent = rr === null ? '' : (rr >= 0 ? '+' : '') + fix(rr, 2);
+    tr.querySelector('.rg').textContent = rg === null ? '' : (rg >= 0 ? '+' : '') + fix(rg, 2);
+  }
+}
+function renderFit() {
+  const f = state.cal.fit, box = $('#fits'); box.innerHTML = '';
+  const nd = state.cal.points.filter(p => p.dose !== null && isFinite(p.dose)).length;
+  $('#fitStatus').textContent = f ? `${nd} points with doses. Fit refreshes as you edit.` : 'Add at least 3 points with doses to fit.';
+  $('#fitStatus').className = 'status';
+  if (!f) return;
+  const names = { R: 'Red channel', G: 'Green channel' };
+  for (const c of CH) {
+    const r = f[c]; const el = document.createElement('div'); el.className = 'fit';
+    if (!r) { el.innerHTML = `<h3 class="c${c}">${names[c]}</h3><div class="status bad">Fit did not converge.</div>`; box.appendChild(el); continue; }
+    const ci = i => r.ci ? ` ± ${fmt(r.ci[i], 2)}` : '';
+    el.innerHTML = `<h3 class="c${c}">${names[c]}</h3><canvas data-ch="${c}" role="img" aria-label="${names[c]} calibration curve"></canvas>
+      <div class="kv"><span>A</span><span>${fmt(r.A)}${ci(0)}</span><span>B</span><span>${fmt(r.B)}${ci(1)}</span><span>C</span><span>${fmt(r.C)}${ci(2)}</span>
+      <span>R²</span><span>${fix(r.r2, 5)}</span><span>RMSE</span><span>${fmt(r.rmse, 3)} Gy</span><span>n</span><span>${r.n}</span></div>`;
+    box.appendChild(el);
+  }
+  box.querySelectorAll('canvas').forEach(cv => drawPlot(cv, cv.dataset.ch));
+  if (f.R && f.G) { /* both OK */ }
+}
+function drawPlot(cv, c) {
+  const f = state.cal.fit && state.cal.fit[c]; if (!f) return;
+  const dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = r.width, H = r.height, m = { l: 38, r: 8, t: 8, b: 30 };
+  const pts = state.cal.points.filter(p => p.dose !== null && isFinite(p.dose)).map(p => ({ x: netSignal(p.mean, c), d: p.dose }));
+  const xmin = Math.min(...pts.map(p => p.x)), xmax = Math.max(...pts.map(p => p.x));
+  const pad = (xmax - xmin) * 0.05 || 0.01, x0 = xmin - pad, x1 = xmax + pad;
+  let dmax = Math.max(...pts.map(p => p.d)) * 1.08 || 1; const dmin = 0;
+  const X = x => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r), Y = d => H - m.b - (d - dmin) / (dmax - dmin) * (H - m.t - m.b);
+  const ink = css('--muted'), line = css('--line'), col = css('--' + c.toLowerCase());
+  ctx.font = '10.5px ' + css('--mono'); ctx.fillStyle = ink; ctx.strokeStyle = line; ctx.lineWidth = 1;
+  const yt = niceTicks(dmin, dmax, 4), xt = niceTicks(x0, x1, 4);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const t of yt) { ctx.beginPath(); ctx.moveTo(m.l, Y(t)); ctx.lineTo(W - m.r, Y(t)); ctx.stroke(); ctx.fillText(String(t), m.l - 5, Y(t)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const t of xt) { ctx.fillText(String(+t.toFixed(3)), X(t), H - m.b + 4); }
+  ctx.fillText('net signal x', (m.l + W - m.r) / 2, H - 13); ctx.save(); ctx.translate(10, (m.t + H - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('dose (Gy)', 0, 0); ctx.restore();
+  ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); let started = false;
+  for (let i = 0; i <= 240; i++) {
+    const x = x0 + (x1 - x0) * i / 240, d = predictDose(f, x);
+    if (!isFinite(d) || d > dmax * 1.2 || d < -dmax) { started = false; continue; }
+    if (!started) { ctx.moveTo(X(x), Y(d)); started = true; } else ctx.lineTo(X(x), Y(d));
+  }
+  ctx.stroke(); ctx.fillStyle = col;
+  for (const p of pts) { ctx.beginPath(); ctx.arc(X(p.x), Y(p.d), 3.2, 0, 6.2832); ctx.fill(); }
+}
+function niceTicks(min, max, n) {
+  const span = max - min || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), r = step0 / mag;
+  const step = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag, out = [];
+  for (let v = Math.ceil(min / step - 1e-9) * step; v <= max + 1e-9; v += step) out.push(+v.toPrecision(12));
+  return out;
+}
+
+/* ------------------------------------------------------------------ calibration viewer wiring */
+const calView = new Viewer($('#calCanvas'), {
+  getMode: () => state.cal.mode,
+  cursor: () => (state.cal.mode === 'pan' ? 'grab' : 'crosshair'),
+  onPatch(wx, wy) {
+    const sc = state.cal.scan; if (!sc) return;
+    const N = clamp(parseInt($('#patchN').value) || 101, 3, 1001);
+    addRoi(Math.round(wx - N / 2), Math.round(wy - N / 2), N, N);
+  },
+  onRect(x0, y0, x1, y1) { addRoi(Math.round(x0), Math.round(y0), Math.round(x1 - x0), Math.round(y1 - y0)); },
+  onDrop: f => (state.cal.layout === 'multi' ? addImages([f]) : openCalScan(f)),
+  onHover(w) { const sc = state.cal.scan; if (!sc) return; const i = $('#calInfo'); const x = Math.floor(w.x), y = Math.floor(w.y); i.textContent = infoText(sc, x, y); },
+  overlay(c, z, dpr) {
+    c.lineWidth = 1.6 * dpr / (z * dpr); const lw = 1.6 / z; c.lineWidth = lw;
+    c.font = `${Math.max(11 / z, 1)}px ${css('--mono')}`; c.textBaseline = 'top';
+    for (const p of state.cal.points) {
+      if (p.scan && p.scan !== state.cal.scan) continue; if (!p.w) continue;
+      const hot = state.cal.hot === p.id, has = p.dose !== null;
+      c.strokeStyle = hot ? '#ffd34d' : (has ? '#62e0a0' : '#ff8e7a'); c.lineWidth = (hot ? 2.6 : 1.6) / z;
+      c.strokeRect(p.x0, p.y0, p.w, p.h);
+      c.fillStyle = c.strokeStyle; c.fillText((p.control ? 'control' : p.id) + (has ? '  ' + p.dose + ' Gy' : ''), p.x0 + 3 / z, p.y0 + 3 / z);
+    }
+  }
+});
+function infoText(sc, x, y) {
+  if (x < 0 || y < 0 || x >= sc.w || y >= sc.h) return `${sc.name}  ${sc.w}×${sc.h}`;
+  const r = sc.getRegion(x, y, 1, 1).data, k = sc.max === 255 ? 1 : 255 / sc.max;
+  return `${sc.name}  ${sc.w}×${sc.h}  x ${x}  y ${y}   R ${Math.round(r[0] * k)}  G ${Math.round(r[1] * k)}  B ${Math.round(r[2] * k)}`;
+}
+function addRoi(x0, y0, w, h, dose = null, sc = state.cal.scan, file = '', silent = false) {
+  if (!sc) return null;
+  x0 = clamp(Math.round(x0), 0, sc.w - 1); y0 = clamp(Math.round(y0), 0, sc.h - 1); w = clamp(Math.round(w), 1, sc.w - x0); h = clamp(Math.round(h), 1, sc.h - y0);
+  const st = regionStats(sc, x0, y0, w, h), multi = state.cal.layout === 'multi';
+  let p = (multi || sc.isControl) ? state.cal.points.find(q => q.scan === sc) : null, isNew = false;
+  if (p) { Object.assign(p, { x0, y0, w, h, cx: x0 + w / 2, cy: y0 + h / 2, mean: st.mean, sd: st.sd, npx: st.n }); if (dose !== null) p.dose = dose; }
+  else {
+    p = { id: state.cal.nextId++, x0, y0, w, h, cx: x0 + w / 2, cy: y0 + h / 2, mean: st.mean, sd: st.sd, npx: st.n, dose, scan: sc, file: file || (multi ? sc.name : '') };
+    state.cal.points.push(p); isNew = true;
+  }
+  if (silent) return p;
+  renderPoints(); calView.draw(); scheduleFit();
+  if (isNew && dose === null) { const inputs = $('#ptBody').querySelectorAll('input'), last = inputs[inputs.length - 1]; if (last) { last.focus(); last.closest('tr').scrollIntoView({ block: 'nearest' }); } }
+  return p;
+}
+const CTRL_RE = /(^|[^a-z])(control|ctrl|unirrad(iated)?|unexposed|blank|zero[ _-]?dose)([^a-z]|$)/i;
+function isControlName(name) { return CTRL_RE.test(name.replace(/\.[^.]+$/, '')); }
+function parseDoseFromName(name) {
+  if (isControlName(name)) return 0;
+  const m = name.replace(/\.[^.]+$/, '').match(/(?:^|[^0-9.])(\d+(?:[.p]\d+)?)\s*[_\- ]?\s*(c?Gy)(?![a-z])/i);
+  if (!m) return null; let v = parseFloat(m[1].replace('p', '.')); if (/^c/i.test(m[2])) v /= 100; return isFinite(v) ? v : null;
+}
+function centralRoi(sc) { const f = clamp((parseFloat($('#roiPct').value) || 60) / 100, 0.05, 1); const w = Math.max(1, Math.round(sc.w * f)), h = Math.max(1, Math.round(sc.h * f)); return [Math.round((sc.w - w) / 2), Math.round((sc.h - h) / 2), w, h]; }
+async function addImages(files) {
+  files = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })); let n = 0, skipped = [];
+  for (const f of files) {
+    if (state.cal.points.some(p => p.file === f.name)) { skipped.push(f.name); continue; }
+    try { const sc = await loadScan(f), r = centralRoi(sc); const cp = addRoi(r[0], r[1], r[2], r[3], parseDoseFromName(f.name), sc, f.name, true); if (isControlName(f.name)) cp.control = true; n++; state.cal.scan = sc; }
+    catch (e) { skipped.push(f.name); }
+  }
+  if (state.cal.scan) setCalImage(state.cal.scan);
+  state.cal.example = false; updateBanner(); renderPoints(); calView.draw(); scheduleFit();
+  const nodose = state.cal.points.filter(p => p.dose === null).length;
+  toast(`Added ${n} image${n === 1 ? '' : 's'}${skipped.length ? `, skipped ${skipped.length}` : ''}.${nodose ? ` ${nodose} need a dose typed in the table.` : ''}`);
+}
+function setLayout(l) {
+  const cal = state.cal; if (cal.layout === l) return;
+  cal.layout = l; cal.scan = null; cal.points = []; cal.fit = null; cal.example = false; cal.source = ''; cal.nextId = 1;
+  $('#lySingle').setAttribute('aria-pressed', l === 'single'); $('#lyMulti').setAttribute('aria-pressed', l === 'multi');
+  $('#singleTools').hidden = l !== 'single'; $('#multiTools').hidden = l !== 'multi';
+  $('#calEmpty').hidden = false; $('#calInfo').hidden = true; calView.setImage(null);
+  $('#thFirst').textContent = l === 'multi' ? 'Image' : '#';
+  if (l === 'multi') {
+    $('#calEmptyTitle').textContent = 'No calibration images added';
+    $('#calEmptyText').textContent = 'Add one image per dose (JPEG, PNG or TIFF). The dose is read from the file name when it contains something like 3Gy or 0.5Gy; otherwise type it in the table.';
+    $('#calEmptyBtn').textContent = 'Add images…';
+    $('#calHint').textContent = 'Each image gets a central ROI. Click a table row to view that image, then click or drag in the viewer to move its ROI. Images may differ in size.';
+  } else {
+    $('#calEmptyTitle').textContent = 'No calibration scan open';
+    $('#calEmptyText').textContent = 'Open or drop a scan of film pieces irradiated to known doses (JPEG, PNG or TIFF). Click each piece to sample its colour, then type its dose.';
+    $('#calEmptyBtn').textContent = 'Open calibration scan';
+    $('#calHint').textContent = 'Click adds a patch, or drag a rectangle. Scroll to zoom, hold Space or use Pan to move. Samples are averaged on the raw scan pixels (colour management off).';
+  }
+  renderPoints(); renderFit(); updateDoseCalUI(); updateBanner();
+}
+async function openCalScan(file) {
+  try {
+    const sc = await loadScan(file);
+    state.cal.scan = sc; state.cal.points = state.cal.points.filter(p => p.control); state.cal.nextId = Math.max(0, ...state.cal.points.map(p => p.id)) + 1; state.cal.fit = null;
+    state.cal.example = false; updateBanner();
+    setCalImage(sc); renderPoints(); renderFit(); updateDoseCalUI();
+    toast(`Opened ${sc.name} (${sc.w}×${sc.h}, ${sc.bits}-bit).`);
+  } catch (e) { toast(e.message || 'Could not open that file.'); }
+}
+function setCalImage(sc) {
+  calView.setImage(sc.display); $('#calEmpty').hidden = true; $('#calInfo').hidden = false; $('#calInfo').textContent = `${sc.name}  ${sc.w}×${sc.h}`;
+}
+
+/* ------------------------------------------------------------------ calibration file I/O */
+function calObject() {
+  const f = state.cal.fit, ch = {};
+  for (const c of CH) if (f && f[c]) ch[c] = { A: f[c].A, B: f[c].B, C: f[c].C, ci95: f[c].ci, r2: f[c].r2, rmse_Gy: f[c].rmse, n: f[c].n };
+  return {
+    format: 'film-dosimetry-calibration', version: 1, created: new Date().toISOString(),
+    model: 'dose_Gy = A / (x + C) + B',
+    renormalization: state.cal.renorm === 'blue' ? 'x = (channel - blue) / maxValue' : 'x = channel / maxValue',
+    renorm: state.cal.renorm, channels: ch,
+    metadata: { film: $('#mFilm').value, scanner: $('#mScan').value, beam: $('#mBeam').value, irradiation_date: $('#mDate').value, notes: $('#mNotes').value, scan_file: state.cal.scan ? state.cal.scan.name : '' },
+    layout: state.cal.layout,
+    points: state.cal.points.map(p => ({ id: p.id, file: p.file || '', x0: p.x0, y0: p.y0, w: p.w, h: p.h, mean_rgb_norm: p.mean, sd_rgb_norm: p.sd, dose_Gy: p.dose, control: !!p.control }))
+  };
+}
+function loadCalObject(o, name) {
+  if (!o || o.format !== 'film-dosimetry-calibration') throw new Error('This is not a calibration file from this tool.');
+  const cal = state.cal; cal.renorm = o.renorm === 'none' ? 'none' : 'blue';
+  cal.layout = o.layout === 'multi' ? 'multi' : 'single'; cal.scan = null;
+  $('#lySingle').setAttribute('aria-pressed', cal.layout === 'single'); $('#lyMulti').setAttribute('aria-pressed', cal.layout === 'multi'); $('#singleTools').hidden = cal.layout !== 'single'; $('#multiTools').hidden = cal.layout !== 'multi'; $('#thFirst').textContent = cal.layout === 'multi' ? 'Image' : '#';
+  cal.points = (o.points || []).map(p => ({ id: p.id, file: p.file || '', x0: p.x0, y0: p.y0, w: p.w, h: p.h, cx: p.x0 + p.w / 2, cy: p.y0 + p.h / 2, mean: p.mean_rgb_norm, sd: p.sd_rgb_norm, dose: p.dose_Gy ?? null, control: !!p.control }));
+  cal.nextId = Math.max(0, ...cal.points.map(p => p.id)) + 1;
+  const fit = { renorm: cal.renorm, source: 'file', n: cal.points.length };
+  for (const c of CH) { const s = o.channels && o.channels[c]; fit[c] = s ? { A: s.A, B: s.B, C: s.C, ci: s.ci95 || null, r2: s.r2, rmse: s.rmse_Gy, n: s.n } : null; }
+  cal.fit = fit; cal.source = name; cal.example = false;
+  const m = o.metadata || {};
+  if (m.film) $('#mFilm').value = [...$('#mFilm').options].some(x => x.value === m.film) ? m.film : 'Other';
+  $('#mScan').value = m.scanner || ''; $('#mBeam').value = m.beam || ''; $('#mDate').value = m.irradiation_date || ''; $('#mNotes').value = m.notes || '';
+  setRenormUI(); renderPoints(); renderFit(); updateDoseCalUI(); calView.draw(); updateBanner();
+  $('#fitStatus').textContent = `Loaded from ${name}. Editing a point refits.`;
+}
+function setRenormUI() {
+  $('#rnBlue').setAttribute('aria-pressed', state.cal.renorm === 'blue'); $('#rnNone').setAttribute('aria-pressed', state.cal.renorm === 'none');
+  $('#eqText').innerHTML = state.cal.renorm === 'blue'
+    ? 'x<sub>c</sub> = (c − B) / max, for c = R, G &nbsp;·&nbsp; dose = A / (x<sub>c</sub> + C) + B'
+    : 'x<sub>c</sub> = c / max, for c = R, G &nbsp;·&nbsp; dose = A / (x<sub>c</sub> + C) + B';
+}
+let clipEdited = false;
+function autoClip() { // default clip = 1.2 x the highest calibration dose, rounded up to a multiple of 5 Gy, unless the user set it
+  if (clipEdited) return;
+  const ds = state.cal.points.map(p => p.dose).filter(d => d !== null && isFinite(d));
+  if (!ds.length) return;
+  const v = Math.max(5, Math.ceil(Math.max(...ds) * 1.2 / 5) * 5);
+  $('#clipMax').value = v;
+}
+function updateDoseCalUI() {
+  const f = state.cal.fit, el = $('#useCal'); let txt = '';
+  if (!f || (!f.R && !f.G)) txt = 'None yet. Fit one on the Calibrate tab or load a calibration file.';
+  else {
+    const rm = f.R ? `R: R² ${fix(f.R.r2, 4)}, RMSE ${fmt(f.R.rmse, 2)} Gy` : 'R: no fit', gm = f.G ? `G: R² ${fix(f.G.r2, 4)}, RMSE ${fmt(f.G.rmse, 2)} Gy` : 'G: no fit';
+    txt = `${f.renorm === 'blue' ? 'Blue-channel renormalization' : 'Raw channel'} · ${state.cal.source ? 'from ' + state.cal.source : 'current fit, ' + (f.n || '') + ' points'}\n${rm}\n${gm}`;
+  }
+  el.style.whiteSpace = 'pre-line'; el.textContent = txt;
+  $('#calSrc').textContent = state.cal.source ? 'Loaded from ' + state.cal.source : '';
+  autoClip();
+  updateConvertBtn();
+}
+
+/* ------------------------------------------------------------------ download helpers */
+const ALLOWED_DIRECT = ['json', 'csv', 'png', 'txt'];
+const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = crcT[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function concat(list) { let n = 0; for (const a of list) n += a.length; const o = new Uint8Array(n); let p = 0; for (const a of list) { o.set(a, p); p += a.length; } return o; }
+function makeZip(files) {
+  const enc = new TextEncoder(), loc = [], cen = []; let off = 0;
+  const now = new Date(), dt = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)), dd = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate());
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = crc32(f.data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true); h.setUint16(10, dt, true); h.setUint16(12, dd, true);
+    h.setUint32(14, crc, true); h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+    const lh = concat([new Uint8Array(h.buffer), nm]); loc.push(lh, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true); c.setUint16(12, dt, true); c.setUint16(14, dd, true);
+    c.setUint32(16, crc, true); c.setUint32(20, f.data.length, true); c.setUint32(24, f.data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    cen.push(concat([new Uint8Array(c.buffer), nm])); off += lh.length + f.data.length;
+  }
+  const cd = concat(cen), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cd.length, true); e.setUint32(16, off, true);
+  return concat([...loc, cd, new Uint8Array(e.buffer)]);
+}
+async function saveFile(name, data) {
+  const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+  const ext = name.split('.').pop().toLowerCase();
+  let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (dl) {
+    let fname = name, payload = bytes;
+    if (!ALLOWED_DIRECT.includes(ext)) { fname = name + '.zip'; payload = makeZip([{ name, data: bytes }]); }
+    try {
+      await dl.save({ filename: fname, data: payload });
+      toast(fname !== name ? `Saved ${fname}. Unzip it to get ${name}.` : `Saved ${fname}.`);
+    } catch (e) { if (e && e.code === 'declined') toast('Save cancelled.'); else toast('Could not save the file here (' + (e && e.code || 'error') + ').'); }
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([bytes])), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast(`Saved ${name}.`);
+}
+
+/* ------------------------------------------------------------------ dose view */
+const dv = $('#doseCanvas');
+const doseView = new Viewer(dv, {
+  getMode: () => (state.dose.tool === 'crop' || state.dose.tool === 'meas') ? 'rect' : (state.dose.tool === 'level' ? 'line' : 'pan'),
+  onLine(a, b) {
+    const d = state.dose; if (!d.scan) return;
+    let phi = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI; phi -= 90 * Math.round(phi / 90);
+    if (Math.abs(phi) < 0.005) return;
+    d.levelLine = null; setAngle((d.angle || 0) + phi, true);
+    setTool('crop');
+  },
+  cursor: () => (state.dose.tool === 'pan' ? 'grab' : 'crosshair'),
+  fitBox: () => { const d = state.dose; if (d.view === 'dose' && d.map) return { x: d.map.x, y: d.map.y, w: d.map.ow * d.map.f, h: d.map.oh * d.map.f }; return { x: 0, y: 0, w: d.scan.w, h: d.scan.h }; },
+  onDrop: f => openDoseScan(f),
+  onRect(x0, y0, x1, y1) {
+    const d = state.dose; if (!d.scan) return;
+    if (d.tool === 'crop') {
+      d.crop = { x: Math.round(clamp(x0, 0, d.scan.w - 1)), y: Math.round(clamp(y0, 0, d.scan.h - 1)), w: 0, h: 0 };
+      d.crop.w = Math.round(clamp(x1, 1, d.scan.w)) - d.crop.x; d.crop.h = Math.round(clamp(y1, 1, d.scan.h)) - d.crop.y;
+      d.map = null; $('#vDose').disabled = true; setDoseView('scan'); updateConvertBtn(); updatePxInfo(); updateExportBtns();
+    } else if (d.tool === 'meas') { measure(x0, y0, x1, y1); }
+  },
+  onHover(w) {
+    const d = state.dose; if (!d.scan) return; const x = Math.floor(w.x), y = Math.floor(w.y); let t = infoText(d.scan, x, y);
+    if (d.view === 'dose' && d.map) {
+      const ix = Math.floor((x - d.map.x) / d.map.f), iy = Math.floor((y - d.map.y) / d.map.f);
+      if (ix >= 0 && iy >= 0 && ix < d.map.ow && iy < d.map.oh) t += `   dose ${fix(d.map.data[iy * d.map.ow + ix], 3)} Gy`;
+    }
+    $('#doseInfo').textContent = t;
+  },
+  overlay(c, z, dpr) {
+    const d = state.dose, lw = 1.8 / z;
+    if (d.crop) { c.lineWidth = lw; c.strokeStyle = '#ffd34d'; c.setLineDash([7 / z, 4 / z]); c.strokeRect(d.crop.x, d.crop.y, d.crop.w, d.crop.h); c.setLineDash([]); }
+    if (d.measure) { c.lineWidth = lw; c.strokeStyle = '#ffffff'; c.strokeRect(d.measure.x0, d.measure.y0, d.measure.x1 - d.measure.x0, d.measure.y1 - d.measure.y0); }
+  }
+});
+function setDoseView(v) {
+  const d = state.dose; d.view = v;
+  $('#vScan').setAttribute('aria-pressed', v === 'scan'); $('#vDose').setAttribute('aria-pressed', v === 'dose');
+  if (!d.scan) return;
+  if (v === 'dose' && d.map) { renderDoseCanvas(); doseView.setImage(d.map.canvas, d.map.f, d.map.x, d.map.y, true); $('#cbarWrap').hidden = false; drawColorbar(); }
+  else { doseView.setImage(d.scan.display, 1, 0, 0, true); $('#cbarWrap').hidden = true; }
+}
+function setTool(t) {
+  state.dose.tool = t;
+  for (const [id, k] of [['tPan', 'pan'], ['tCrop', 'crop'], ['tLevel', 'level'], ['tMeas', 'meas']]) $('#' + id).setAttribute('aria-pressed', k === t);
+  dv.style.cursor = t === 'pan' ? 'grab' : 'crosshair';
+}
+
+/* ------------------------------------------------------------------ straighten and crop */
+// Rotation convention: positive angle turns the picture counter-clockwise on screen.
+async function findFilm(sc) { // locate film against the (clipped-white) scanner background; returns outline points and a level angle
+  const k = Math.max(1, Math.ceil(Math.max(sc.w, sc.h) / 1100)), gw = Math.floor(sc.w / k), gh = Math.floor(sc.h / k);
+  if (gw < 20 || gh < 20) return null;
+  const thr = 0.97 * sc.max, m = new Uint8Array(gw * gh), kk = k * k;
+  for (let gy = 0; gy < gh; gy++) {
+    const reg = sc.getRegion(0, gy * k, gw * k, k), d = reg.data, st = reg.stride, rw = gw * k;
+    for (let gx = 0; gx < gw; gx++) {
+      let n = 0;
+      for (let j = 0; j < k; j++) { let i = (j * rw + gx * k) * st; for (let q = 0; q < k; q++, i += st) if (Math.min(d[i], d[i + 1], d[i + 2]) < thr) n++; }
+      m[gy * gw + gx] = n > kk * 0.5 ? 1 : 0;
+    }
+    if ((gy & 63) === 63) await tick();
+  }
+  // opening (erode then dilate, radius 2) removes dust and writing outside the film
+  const box = (src, r, wantMin) => {
+    const tmp = new Uint8Array(gw * gh), out = new Uint8Array(gw * gh);
+    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let v = wantMin ? 1 : 0; for (let i = Math.max(0, x - r); i <= Math.min(gw - 1, x + r); i++) { const s = src[y * gw + i]; if (wantMin ? !s : s) { v = wantMin ? 0 : 1; break; } } tmp[y * gw + x] = v; }
+    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let v = wantMin ? 1 : 0; for (let j = Math.max(0, y - r); j <= Math.min(gh - 1, y + r); j++) { const s = tmp[j * gw + x]; if (wantMin ? !s : s) { v = wantMin ? 0 : 1; break; } } out[y * gw + x] = v; }
+    return out;
+  };
+  const op = box(box(m, 2, true), 2, false);
+  // largest connected component
+  const lab = new Int32Array(gw * gh), q = new Int32Array(gw * gh); let best = 0, bestId = 0, id = 0;
+  for (let i0 = 0; i0 < op.length; i0++) {
+    if (!op[i0] || lab[i0]) continue; id++; let h = 0, t = 0; q[t++] = i0; lab[i0] = id;
+    while (h < t) { const i = q[h++], x = i % gw, y = (i / gw) | 0;
+      if (x > 0 && op[i - 1] && !lab[i - 1]) { lab[i - 1] = id; q[t++] = i - 1; } if (x < gw - 1 && op[i + 1] && !lab[i + 1]) { lab[i + 1] = id; q[t++] = i + 1; }
+      if (y > 0 && op[i - gw] && !lab[i - gw]) { lab[i - gw] = id; q[t++] = i - gw; } if (y < gh - 1 && op[i + gw] && !lab[i + gw]) { lab[i + gw] = id; q[t++] = i + gw; } }
+    if (t > best) { best = t; bestId = id; }
+  }
+  const frac = best / (gw * gh); if (frac < 0.02 || frac > 0.9995) return { frac, ok: false };
+  const px = [], py = [], ex = [], ey = [];
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+    const i = y * gw + x; if (lab[i] !== bestId) continue;
+    const onB = x === 0 || y === 0 || x === gw - 1 || y === gh - 1;
+    if (onB || lab[i - 1] !== bestId || lab[i + 1] !== bestId || lab[i - gw] !== bestId || lab[i + gw] !== bestId) {
+      const X = (x + 0.5) * k - sc.w / 2, Y = (y + 0.5) * k - sc.h / 2; px.push(X); py.push(Y);
+      if (!onB) { ex.push(X); ey.push(Y); }   // edges that lie against the scanner background, not the scan frame
+    }
+  }
+  return { ok: true, frac, k, pts: { x: Float32Array.from(px), y: Float32Array.from(py) }, edge: { x: Float32Array.from(ex), y: Float32Array.from(ey) } };
+}
+function bboxAt(pts, deg) { // bounding box of outline points after turning the picture by deg (CCW), relative to the scan centre; trimmed against stray points
+  const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), n = pts.x.length, X = new Float32Array(n), Y = new Float32Array(n);
+  for (let i = 0; i < n; i++) { X[i] = c * pts.x[i] + s * pts.y[i]; Y[i] = -s * pts.x[i] + c * pts.y[i]; }
+  const sx = Float32Array.from(X).sort(), sy = Float32Array.from(Y).sort(), lo = Math.floor(n * 0.002), hi = n - 1 - lo;
+  return { x0: sx[lo], x1: sx[hi], y0: sy[lo], y1: sy[hi] };
+}
+function edgeScore(pts, deg, bin) { // how strongly outline points pile up on straight horizontal and vertical lines after turning by deg
+  const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), n = pts.x.length, R = 40000, hx = new Int32Array(R), hy = new Int32Array(R), off = R / 2;
+  for (let i = 0; i < n; i++) { const X = c * pts.x[i] + s * pts.y[i], Y = -s * pts.x[i] + c * pts.y[i]; hx[clamp(Math.floor(X / bin) + off, 0, R - 1)]++; hy[clamp(Math.floor(Y / bin) + off, 0, R - 1)]++; }
+  let sc = 0; for (let i = 0; i < R; i++) sc += hx[i] * hx[i] + hy[i] * hy[i]; return sc;
+}
+function bestAngle(pts, k) {
+  if (pts.x.length < 60) return 0;
+  const bin = Math.max(1, k * 0.75); let best = 0, bs = -1;
+  for (let a = -20; a <= 20.001; a += 0.25) { const v = edgeScore(pts, a, bin); if (v > bs) { bs = v; best = a; } }
+  for (const [step, span] of [[0.05, 0.3], [0.01, 0.06]]) { const c0 = best; for (let a = c0 - span; a <= c0 + span + 1e-9; a += step) { const v = edgeScore(pts, a, bin); if (v > bs + 1e-9) { bs = v; best = a; } } }
+  return Math.round(best * 100) / 100;
+}
+function rotatedSize(w, h, deg) { const a = Math.abs(deg) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a); return { w: Math.ceil(w * c + h * s), h: Math.ceil(w * s + h * c) }; }
+async function rotateScan(o, deg) {
+  const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), sz = rotatedSize(o.w, o.h, deg), W = sz.w, H = sz.h;
+  const src = o.getRegion(0, 0, o.w, o.h), sd = src.data, st = src.stride, ow = o.w, oh = o.h;
+  const px = o.max > 255 ? new Uint16Array(W * H * 3) : new Uint8ClampedArray(W * H * 3);
+  const cx = ow / 2, cy = oh / 2, ox = W / 2, oy = H / 2, white = o.max;
+  for (let y = 0; y < H; y++) {
+    const v = y + 0.5 - oy;
+    for (let x = 0; x < W; x++) {
+      const u = x + 0.5 - ox, sx = c * u - s * v + cx - 0.5, sy = s * u + c * v + cy - 0.5, o3 = (y * W + x) * 3;
+      if (sx < -0.5 || sy < -0.5 || sx > ow - 0.5 || sy > oh - 0.5) { px[o3] = px[o3 + 1] = px[o3 + 2] = white; continue; }
+      const x0 = Math.max(0, Math.min(ow - 2, Math.floor(sx))), y0 = Math.max(0, Math.min(oh - 2, Math.floor(sy))), fx = Math.min(1, Math.max(0, sx - x0)), fy = Math.min(1, Math.max(0, sy - y0));
+      const i00 = (y0 * ow + x0) * st, i01 = i00 + st, i10 = i00 + ow * st, i11 = i10 + st;
+      for (let ch = 0; ch < 3; ch++) px[o3 + ch] = (sd[i00 + ch] * (1 - fx) + sd[i01 + ch] * fx) * (1 - fy) + (sd[i10 + ch] * (1 - fx) + sd[i11 + ch] * fx) * fy;
+    }
+    if ((y & 127) === 127) await tick();
+  }
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d'), id = ctx.createImageData(W, H), dd = id.data, sh = o.max > 255 ? 8 : 0;
+  for (let i = 0, j = 0; i < W * H; i++, j += 4) { dd[j] = px[i * 3] >> sh; dd[j + 1] = px[i * 3 + 1] >> sh; dd[j + 2] = px[i * 3 + 2] >> sh; dd[j + 3] = 255; }
+  ctx.putImageData(id, 0, 0);
+  return { name: o.name, w: W, h: H, max: o.max, bits: o.bits, display: cv, rotated: deg,
+    getRegion(x, y, rw, rh) { const out = new px.constructor(rw * rh * 3); for (let r = 0; r < rh; r++) out.set(px.subarray(((y + r) * W + x) * 3, ((y + r) * W + x + rw) * 3), r * rw * 3); return { data: out, stride: 3, w: rw, h: rh }; } };
+}
+function autoCropFor(deg) { // crop rectangle in the rotated frame, from the outline found by findFilm
+  const d = state.dose, f = d.film, o = d.orig; if (!f || !f.ok) return null;
+  const b = bboxAt(f.pts, deg), sz = rotatedSize(o.w, o.h, deg), dpi = parseFloat($('#dpi').value) || 300, ins = Math.max(0, parseFloat($('#insetMm').value) || 0) * dpi / 25.4;
+  const x0 = Math.round(sz.w / 2 + b.x0 + ins), y0 = Math.round(sz.h / 2 + b.y0 + ins), x1 = Math.round(sz.w / 2 + b.x1 - ins), y1 = Math.round(sz.h / 2 + b.y1 - ins);
+  const cx0 = clamp(x0, 0, sz.w - 2), cy0 = clamp(y0, 0, sz.h - 2), w = clamp(x1, cx0 + 1, sz.w) - cx0, h = clamp(y1, cy0 + 1, sz.h) - cy0;
+  return w > 4 && h > 4 ? { x: cx0, y: cy0, w, h } : null;
+}
+function xfStatus() {
+  const d = state.dose, dpi = parseFloat($('#dpi').value) || 300, t = [];
+  t.push(Math.abs(d.angle || 0) < 0.005 ? 'No rotation' : `Rotated ${fix(d.angle, 2)}° counter-clockwise`);
+  t.push(d.crop ? `crop ${d.crop.w} × ${d.crop.h} px (${fix(d.crop.w / dpi * 2.54, 1)} × ${fix(d.crop.h / dpi * 2.54, 1)} cm)` : 'no crop');
+  $('#xfInfo').textContent = t.join(' · ');
+}
+let rotBusy = false, rotQueued = null;
+async function setAngle(deg, recrop) {
+  const d = state.dose; if (!d.orig) return;
+  if (rotBusy) { rotQueued = [deg, recrop]; return; }
+  rotBusy = true;
+  try {
+    deg = clamp(Math.round(deg * 100) / 100, -45, 45);
+    if (Math.abs(deg) >= 0.005) { $('#xfInfo').textContent = 'Rotating…'; await tick(); }
+    d.scan = Math.abs(deg) < 0.005 ? d.orig : await rotateScan(d.orig, deg); d.angle = Math.abs(deg) < 0.005 ? 0 : deg; $('#rotDeg').value = d.angle;
+    d.map = null; d.measure = null; $('#vDose').disabled = true;
+    d.crop = recrop ? autoCropFor(d.angle) : null;
+    setDoseView('scan'); doseView.setImage(d.scan.display); $('#doseInfo').textContent = `${d.scan.name}  ${d.scan.w}×${d.scan.h}`;
+    updateConvertBtn(); updatePxInfo(); updateExportBtns(); xfStatus();
+  } catch (e) { toast(e.message || 'Rotation failed.'); }
+  rotBusy = false;
+  if (rotQueued) { const q = rotQueued; rotQueued = null; setAngle(q[0], q[1]); }
+}
+async function autoStraighten(onOpen) {
+  const d = state.dose; if (!d.orig) return;
+  $('#xfInfo').textContent = 'Looking for the film…'; await tick();
+  const f = await findFilm(d.orig); d.film = f;
+  if (!f || !f.ok) {
+    $('#xfInfo').textContent = f && f.frac > 0.99 ? 'The film fills the whole scan, so there is no background to remove. Use Level edge if it is tilted, and Export region to crop.' : 'Could not separate the film from the background (no clipped-white scanner area found). Use Level edge and Export region.';
+    toast('Auto crop found no scanner background. Set the rotation and export region manually.'); return;
+  }
+  const ang = bestAngle(f.edge, f.k); await setAngle(ang, true); await tick();
+  toast(`Auto: rotated ${fix(ang, 2)}° and cropped${d.crop ? ' to ' + fix(d.crop.w / (parseFloat($('#dpi').value) || 300) * 2.54, 1) + ' × ' + fix(d.crop.h / (parseFloat($('#dpi').value) || 300) * 2.54, 1) + ' cm' : ''}. Adjust below if needed.`);
+}
+$('#autoFit').onclick = () => autoStraighten(false);
+$('#autoReset').onclick = async () => { await setAngle(0, false); if (state.dose.orig) toast('Reset: original scan, no crop.'); };
+$('#rotDeg').addEventListener('change', () => { const v = parseFloat($('#rotDeg').value); if (isFinite(v)) setAngle(v, true); });
+$('#insetMm').addEventListener('change', () => { const d = state.dose; if (d.orig && d.film && d.film.ok) { d.crop = autoCropFor(d.angle || 0); d.map = null; $('#vDose').disabled = true; setDoseView('scan'); updateConvertBtn(); updatePxInfo(); updateExportBtns(); xfStatus(); doseView.draw(); } });
+document.querySelectorAll('[data-nudge]').forEach(b => b.addEventListener('click', () => setAngle((state.dose.angle || 0) + parseFloat(b.dataset.nudge), true)));
+$('#rot90').onclick = async () => { // quarter turn of the whole scan (new original), for scans placed sideways
+  const d = state.dose, o = d.orig; if (!o) return;
+  const reg = o.getRegion(0, 0, o.w, o.h), st = reg.stride, W = o.h, H = o.w, px = o.max > 255 ? new Uint16Array(W * H * 3) : new Uint8ClampedArray(W * H * 3);
+  for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) { const i = (y * o.w + x) * st, j = (x * W + (o.h - 1 - y)) * 3; px[j] = reg.data[i]; px[j + 1] = reg.data[i + 1]; px[j + 2] = reg.data[i + 2]; }
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d'), id = ctx.createImageData(W, H), dd = id.data, sh = o.max > 255 ? 8 : 0;
+  for (let i = 0, j = 0; i < W * H; i++, j += 4) { dd[j] = px[i * 3] >> sh; dd[j + 1] = px[i * 3 + 1] >> sh; dd[j + 2] = px[i * 3 + 2] >> sh; dd[j + 3] = 255; } ctx.putImageData(id, 0, 0);
+  d.orig = { name: o.name, w: W, h: H, max: o.max, bits: o.bits, display: cv, getRegion(x, y, rw, rh) { const out = new px.constructor(rw * rh * 3); for (let r = 0; r < rh; r++) out.set(px.subarray(((y + r) * W + x) * 3, ((y + r) * W + x + rw) * 3), r * rw * 3); return { data: out, stride: 3, w: rw, h: rh }; } };
+  d.film = null; d.angle = 0; await setAngle(0, false); if ($('#autoOnOpen').checked) await autoStraighten(true);
+};
+async function openDoseScan(file) {
+  try {
+    const sc = await loadScan(file); const d = state.dose;
+    d.scan = sc; d.orig = sc; d.angle = 0; d.film = null; d.crop = null; d.map = null; d.measure = null; d.example = false; updateBanner();
+    $('#vDose').disabled = true; $('#doseEmpty').hidden = true; $('#doseInfo').hidden = false; $('#doseInfo').textContent = `${sc.name}  ${sc.w}×${sc.h}`;
+    setDoseView('scan'); doseView.setImage(sc.display); $('#measOut').textContent = '';
+    updateConvertBtn(); updatePxInfo(); updateExportBtns();
+    $('#autoFit').disabled = false; $('#autoReset').disabled = false; $('#rotDeg').value = 0; $('#xfInfo').textContent = 'No rotation, no crop.';
+    toast(`Opened ${sc.name} (${sc.w}×${sc.h}, ${sc.bits}-bit).`); setTool('crop');
+    if ($('#autoOnOpen').checked) await autoStraighten(true); else toast('Draw the export region over the film, or press Auto crop and straighten.');
+  } catch (e) { toast(e.message || 'Could not open that file.'); }
+}
+function updatePxInfo() {
+  const d = state.dose, f = Math.max(1, parseInt($('#binF').value) || 1), dpi = parseFloat($('#dpi').value) || 300;
+  const mm = 25.4 / dpi * f; const reg = d.crop || (d.scan ? { w: d.scan.w, h: d.scan.h } : null);
+  $('#pxInfo').textContent = reg ? `Output pixel ${mm.toFixed(3)} mm · ${Math.floor(reg.w / f)} × ${Math.floor(reg.h / f)} px · ${(Math.floor(reg.w / f) * mm / 10).toFixed(1)} × ${(Math.floor(reg.h / f) * mm / 10).toFixed(1)} cm${d.crop ? '' : ' (whole scan)'}` : `Output pixel ${mm.toFixed(3)} mm`;
+}
+function updateConvertBtn() {
+  const f = state.cal.fit; const okFit = f && (f.R || f.G);
+  $('#doConvert').disabled = !(state.dose.scan && okFit);
+}
+function updateExportBtns() { const on = !!state.dose.map; for (const id of ['exTif32', 'exTif16', 'exDcm', 'exPng']) $('#' + id).disabled = !on; try { updateCmpButtons(); } catch (e) { } }
+
+/* weights */
+function weights() { const r = (parseInt($('#wR').value) || 0) / 100; return { R: r, G: 1 - r }; }
+function updateWeightUI() { const w = weights(); $('#wRv').textContent = Math.round(w.R * 100) + '%'; $('#wGv').textContent = Math.round(w.G * 100) + '%'; }
+
+async function convert() {
+  const d = state.dose, sc = d.scan, fit = state.cal.fit; if (!sc || !fit) return;
+  const f = clamp(parseInt($('#binF').value) || 1, 1, 64), dpi = parseFloat($('#dpi').value) || 300, clipMax = parseFloat($('#clipMax').value) || 15;
+  const w = weights(); const useR = w.R > 0, useG = w.G > 0;
+  if ((useR && !fit.R) || (useG && !fit.G)) { toast('The selected channel has no fit. Change the weights or refit.'); return; }
+  const crop = d.crop || { x: 0, y: 0, w: sc.w, h: sc.h };
+  const ow = Math.floor(crop.w / f), oh = Math.floor(crop.h / f);
+  if (ow < 2 || oh < 2) { toast('Export region is too small for this binning.'); return; }
+  $('#doConvert').disabled = true; const prog = $('#prog'); prog.hidden = false; const bar = prog.firstElementChild;
+  const out = new Float32Array(ow * oh), inv = 1 / sc.max, blue = fit.renorm === 'blue', area = f * f;
+  const rows = Math.max(1, Math.floor(1.5e6 / (ow * f * f)));
+  const t0 = performance.now();
+  for (let oy0 = 0; oy0 < oh; oy0 += rows) {
+    const nr = Math.min(rows, oh - oy0), reg = sc.getRegion(crop.x, crop.y + oy0 * f, ow * f, nr * f), data = reg.data, st = reg.stride, rw = ow * f;
+    for (let oy = 0; oy < nr; oy++) for (let ox = 0; ox < ow; ox++) {
+      let sr = 0, sg = 0, sb = 0;
+      for (let j = 0; j < f; j++) { let idx = ((oy * f + j) * rw + ox * f) * st; for (let i = 0; i < f; i++, idx += st) { sr += data[idx]; sg += data[idx + 1]; sb += data[idx + 2]; } }
+      sr *= inv / area; sg *= inv / area; sb *= inv / area;
+      let dose = 0;
+      if (useR) { const x = blue ? sr - sb : sr, den = x + fit.R.C; dose += w.R * (den <= 1e-9 ? clipMax : fit.R.A / den + fit.R.B); }
+      if (useG) { const x = blue ? sg - sb : sg, den = x + fit.G.C; dose += w.G * (den <= 1e-9 ? clipMax : fit.G.A / den + fit.G.B); }
+      out[(oy0 + oy) * ow + ox] = dose < 0 ? 0 : dose > clipMax ? clipMax : dose;
+    }
+    bar.style.width = (100 * (oy0 + nr) / oh) + '%'; await tick();
+  }
+  let mx = 0, mn = Infinity; for (let i = 0; i < out.length; i++) { if (out[i] > mx) mx = out[i]; if (out[i] < mn) mn = out[i]; }
+  d.map = { data: out, ow, oh, f, x: crop.x, y: crop.y, dpi, mm: 25.4 / dpi * f, max: mx, min: mn, clipMax, weights: w, canvas: document.createElement('canvas') };
+  d.map.canvas.width = ow; d.map.canvas.height = oh;
+  $('#dispMax').value = +(Math.max(0.1, Math.ceil(mx * 10) / 10)).toPrecision(3);
+  prog.hidden = true; bar.style.width = '0'; $('#vDose').disabled = false; updateConvertBtn(); updateExportBtns();
+  $('#convMsg').textContent = `Done in ${((performance.now() - t0) / 1000).toFixed(1)} s. Dose range ${fix(mn, 2)} to ${fix(mx, 2)} Gy.`;
+  $('#exInfo').textContent = `${ow} × ${oh} px at ${d.map.mm.toFixed(3)} mm, max ${fix(mx, 2)} Gy, from ${sc.name}.`;
+  setDoseView('dose'); doseView.fit();
+}
+const VIRIDIS = ['#440154', '#472d7b', '#3b528b', '#2c728e', '#21918c', '#28ae80', '#5ec962', '#addc30', '#fde725'].map(h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)));
+function cmap(t) {
+  t = clamp(t, 0, 1) * 8; const i = Math.min(7, Math.floor(t)), f = t - i, a = VIRIDIS[i], b = VIRIDIS[i + 1];
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+}
+function renderDoseCanvas() {
+  const m = state.dose.map; if (!m) return; const vmax = parseFloat($('#dispMax').value) || m.max || 1;
+  const ctx = m.canvas.getContext('2d'), id = ctx.createImageData(m.ow, m.oh), px = id.data;
+  const lut = Array.from({ length: 256 }, (_, i) => cmap(i / 255));
+  for (let i = 0; i < m.data.length; i++) { const c = lut[Math.min(255, Math.round(m.data[i] / vmax * 255))], j = i * 4; px[j] = c[0]; px[j + 1] = c[1]; px[j + 2] = c[2]; px[j + 3] = 255; }
+  ctx.putImageData(id, 0, 0);
+}
+function drawColorbar() {
+  const cv = $('#cbar'), ctx = cv.getContext('2d'), vmax = parseFloat($('#dispMax').value) || 1;
+  for (let x = 0; x < cv.width; x++) { const c = cmap(x / (cv.width - 1)); ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(x, 0, 1, cv.height); }
+  $('#cb0').textContent = '0 Gy'; $('#cb1').textContent = fix(vmax / 2, 2); $('#cb2').textContent = fix(vmax, 2) + ' Gy';
+}
+function measure(x0, y0, x1, y1) {
+  const d = state.dose, m = d.map;
+  if (!m) { $('#measOut').textContent = 'Convert to a dose map first, then measure.'; return; }
+  const ix0 = clamp(Math.floor((x0 - m.x) / m.f), 0, m.ow - 1), ix1 = clamp(Math.ceil((x1 - m.x) / m.f), 1, m.ow), iy0 = clamp(Math.floor((y0 - m.y) / m.f), 0, m.oh - 1), iy1 = clamp(Math.ceil((y1 - m.y) / m.f), 1, m.oh);
+  let s = 0, q = 0, n = 0, mn = Infinity, mx = -Infinity;
+  for (let y = iy0; y < iy1; y++) for (let x = ix0; x < ix1; x++) { const v = m.data[y * m.ow + x]; s += v; q += v * v; n++; if (v < mn) mn = v; if (v > mx) mx = v; }
+  if (!n) return; const mean = s / n, sd = Math.sqrt(Math.max(0, (q - n * mean * mean) / Math.max(1, n - 1)));
+  d.measure = { x0: m.x + ix0 * m.f, y0: m.y + iy0 * m.f, x1: m.x + ix1 * m.f, y1: m.y + iy1 * m.f }; doseView.draw();
+  $('#measOut').textContent = `ROI ${ix1 - ix0} × ${iy1 - iy0} px (${((ix1 - ix0) * m.mm).toFixed(1)} × ${((iy1 - iy0) * m.mm).toFixed(1)} mm):  mean ${fix(mean, 3)} Gy · SD ${fix(sd, 3)} Gy (${fix(mean ? sd / mean * 100 : 0, 1)}%) · min ${fix(mn, 2)} · max ${fix(mx, 2)}`;
+}
+
+/* ------------------------------------------------------------------ writers: TIFF and DICOM */
+function buildTiff(m, kind, desc) {
+  const w = m.ow, h = m.oh, n = w * h, bytes = kind === 'f32' ? 4 : 2;
+  let pix;
+  if (kind === 'f32') pix = new Uint8Array(new Float32Array(m.data).buffer);
+  else { const u = new Uint16Array(n), sc = 65535 / m.clipMax; for (let i = 0; i < n; i++) u[i] = Math.round(clamp(m.data[i] * sc, 0, 65535)); pix = new Uint8Array(u.buffer); }
+  const descB = new TextEncoder().encode(desc + '\0'), nTags = 14;
+  const ifdOff = 8 + pix.length + (pix.length & 1), ifdLen = 2 + nTags * 12 + 4;
+  const descOff = ifdOff + ifdLen, xOff = descOff + descB.length + (descB.length & 1), yOff = xOff + 8, total = yOff + 8;
+  const buf = new ArrayBuffer(total), dv = new DataView(buf), u8 = new Uint8Array(buf);
+  dv.setUint16(0, 0x4949, true); dv.setUint16(2, 42, true); dv.setUint32(4, ifdOff, true); u8.set(pix, 8);
+  let p = ifdOff; dv.setUint16(p, nTags, true); p += 2;
+  const tag = (t, type, cnt, val) => { dv.setUint16(p, t, true); dv.setUint16(p + 2, type, true); dv.setUint32(p + 4, cnt, true); if (type === 3) dv.setUint16(p + 8, val, true); else dv.setUint32(p + 8, val, true); p += 12; };
+  tag(256, 4, 1, w); tag(257, 4, 1, h); tag(258, 3, 1, bytes * 8); tag(259, 3, 1, 1); tag(262, 3, 1, 1);
+  tag(270, 2, descB.length, descOff); tag(273, 4, 1, 8); tag(277, 3, 1, 1); tag(278, 4, 1, h); tag(279, 4, 1, pix.length);
+  tag(282, 5, 1, xOff); tag(283, 5, 1, yOff); tag(296, 3, 1, 2); tag(339, 3, 1, kind === 'f32' ? 3 : 1);
+  dv.setUint32(p, 0, true);
+  u8.set(descB, descOff);
+  const res = Math.round(m.dpi / m.f * 1000); dv.setUint32(xOff, res, true); dv.setUint32(xOff + 4, 1000, true); dv.setUint32(yOff, res, true); dv.setUint32(yOff + 4, 1000, true);
+  return u8;
+}
+function uid() { const b = crypto.getRandomValues(new Uint8Array(16)); let n = 0n; for (const x of b) n = (n << 8n) | BigInt(x); return '2.25.' + n.toString(); }
+function buildDicom(m, name, pid) {
+  const enc = new TextEncoder(), LONG = ['OB', 'OW', 'OF', 'SQ', 'UN', 'UT'];
+  const ascii = s => String(s).replace(/[^\x20-\x7E]/g, '');
+  const el = (g, e, vr, val) => {
+    const long = LONG.includes(vr), hdr = new Uint8Array(long ? 12 : 8), v = new DataView(hdr.buffer);
+    v.setUint16(0, g, true); v.setUint16(2, e, true); hdr[4] = vr.charCodeAt(0); hdr[5] = vr.charCodeAt(1);
+    if (long) v.setUint32(8, val.length, true); else v.setUint16(6, val.length, true); return concat([hdr, val]);
+  };
+  const S = (vr, s) => { let b = enc.encode(ascii(s)); if (b.length & 1) { const n = new Uint8Array(b.length + 1); n.set(b); n[b.length] = vr === 'UI' ? 0 : 32; b = n; } return b; };
+  const US = n => { const b = new Uint8Array(2); new DataView(b.buffer).setUint16(0, n, true); return b; };
+  const UL = n => { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, n, true); return b; };
+  const SOPCLASS = '1.2.840.10008.5.1.4.1.1.481.2', sop = uid(), now = new Date(), p2 = n => String(n).padStart(2, '0');
+  const date = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}`, time = `${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}`;
+  const maxv = Math.max(m.max, 1e-6), scaling = maxv / 65535, u16 = new Uint16Array(m.data.length);
+  for (let i = 0; i < u16.length; i++) u16[i] = Math.round(clamp(m.data[i] / scaling, 0, 65535));
+  const dsStr = v => { let s = Number(v).toPrecision(10); if (s.length > 16) s = Number(v).toExponential(8); return s; };
+  const sp = dsStr(m.mm);
+  const meta = concat([
+    el(2, 1, 'OB', new Uint8Array([0, 1])), el(2, 2, 'UI', S('UI', SOPCLASS)), el(2, 3, 'UI', S('UI', sop)),
+    el(2, 0x10, 'UI', S('UI', '1.2.840.10008.1.2.1')), el(2, 0x12, 'UI', S('UI', '2.25.1')), el(2, 0x13, 'SH', S('SH', 'FILMDOSE_WEB'))]);
+  const body = concat([
+    el(8, 0x16, 'UI', S('UI', SOPCLASS)), el(8, 0x18, 'UI', S('UI', sop)), el(8, 0x20, 'DA', S('DA', date)), el(8, 0x30, 'TM', S('TM', time)),
+    el(8, 0x50, 'SH', S('SH', '')), el(8, 0x60, 'CS', S('CS', 'RTDOSE')), el(8, 0x70, 'LO', S('LO', 'Film Dosimetry Workbench')), el(8, 0x90, 'PN', S('PN', '')),
+    el(8, 0x103E, 'LO', S('LO', 'Film dose map (Gy)')),
+    el(0x10, 0x10, 'PN', S('PN', name)), el(0x10, 0x20, 'LO', S('LO', pid)), el(0x10, 0x30, 'DA', S('DA', '')), el(0x10, 0x40, 'CS', S('CS', '')),
+    el(0x20, 0x0D, 'UI', S('UI', uid())), el(0x20, 0x0E, 'UI', S('UI', uid())), el(0x20, 0x10, 'SH', S('SH', '1')), el(0x20, 0x11, 'IS', S('IS', '1')), el(0x20, 0x13, 'IS', S('IS', '1')),
+    el(0x20, 0x32, 'DS', S('DS', '0\\0\\0')), el(0x20, 0x37, 'DS', S('DS', '1\\0\\0\\0\\1\\0')), el(0x20, 0x52, 'UI', S('UI', uid())), el(0x20, 0x1040, 'LO', S('LO', '')),
+    el(0x28, 2, 'US', US(1)), el(0x28, 4, 'CS', S('CS', 'MONOCHROME2')), el(0x28, 8, 'IS', S('IS', '1')), el(0x28, 0x10, 'US', US(m.oh)), el(0x28, 0x11, 'US', US(m.ow)),
+    el(0x28, 0x30, 'DS', S('DS', sp + '\\' + sp)),
+    el(0x28, 0x100, 'US', US(16)), el(0x28, 0x101, 'US', US(16)), el(0x28, 0x102, 'US', US(15)), el(0x28, 0x103, 'US', US(0)),
+    el(0x3004, 2, 'CS', S('CS', 'GY')), el(0x3004, 4, 'CS', S('CS', 'PHYSICAL')), el(0x3004, 0x0A, 'CS', S('CS', 'PLAN')),
+    el(0x3004, 0x0C, 'DS', S('DS', '0')), el(0x3004, 0x0E, 'DS', S('DS', dsStr(scaling))),
+    el(0x7FE0, 0x10, 'OW', new Uint8Array(u16.buffer))]);
+  const groupLen = el(2, 0, 'UL', UL(meta.length));
+  return concat([new Uint8Array(128), enc.encode('DICM'), groupLen, meta, body]);
+}
+
+/* ------------------------------------------------------------------ export actions */
+function baseName() { const d = state.dose; return (d.scan ? d.scan.name.replace(/\.[^.]+$/, '') : 'film') + '_dose'; }
+function descText(m, kind) {
+  const c = state.cal.fit || {};
+  return `Film dose map. ${kind === 'f32' ? 'Pixel value = dose in Gy.' : `Dose_Gy = value * ${m.clipMax} / 65535.`} Pixel size ${m.mm.toFixed(4)} mm. Binning ${m.f}. Clip ${m.clipMax} Gy. Renorm ${c.renorm || ''}. Weights R ${m.weights.R.toFixed(2)} G ${m.weights.G.toFixed(2)}.`;
+}
+$('#exTif32').addEventListener('click', () => { const m = state.dose.map; if (m) saveFile(baseName() + '_Gy32.tif', buildTiff(m, 'f32', descText(m, 'f32'))); });
+$('#exTif16').addEventListener('click', () => { const m = state.dose.map; if (m) saveFile(baseName() + '_16bit.tif', buildTiff(m, 'u16', descText(m, 'u16'))); });
+$('#exDcm').addEventListener('click', () => { const m = state.dose.map; if (m) saveFile(baseName() + '.dcm', buildDicom(m, $('#dcmName').value || 'FILM^DOSE', $('#dcmId').value || 'FILM001')); });
+$('#exPng').addEventListener('click', async () => {
+  const m = state.dose.map; if (!m) return; renderDoseCanvas();
+  const blob = await new Promise(r => m.canvas.toBlob(r, 'image/png')); saveFile(baseName() + '_preview.png', new Uint8Array(await blob.arrayBuffer()));
+});
+$('#calSave').addEventListener('click', () => { if (!state.cal.fit) { toast('Fit a calibration first.'); return; } saveFile('film_calibration_' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(calObject(), null, 2)); });
+$('#calCsv').addEventListener('click', () => {
+  const rows = ['id,file,x0,y0,w,h,R,sdR,G,sdG,B,sdB,dose_Gy'];
+  for (const p of state.cal.points) rows.push([p.id, JSON.stringify(p.file || ''), p.x0, p.y0, p.w, p.h, ...[0, 1, 2].flatMap(c => [(p.mean[c] * 255).toFixed(3), (p.sd[c] * 255).toFixed(3)]), p.dose ?? ''].join(','));
+  saveFile('calibration_points.csv', rows.join('\n'));
+});
+async function readCalFile(file) { try { loadCalObject(JSON.parse(await file.text()), file.name); toast('Loaded ' + file.name); } catch (e) { toast(e.message || 'Could not read that calibration file.'); } }
+$('#calLoad').addEventListener('change', e => { if (e.target.files[0]) readCalFile(e.target.files[0]); e.target.value = ''; });
+$('#calLoadBtn').addEventListener('click', () => $('#calLoad').click());
+$('#useLoadBtn').addEventListener('click', () => $('#calLoad').click());
+
+/* ------------------------------------------------------------------ controls wiring */
+function setMode(m) {
+  state.cal.mode = m;
+  for (const [id, k] of [['mPatch', 'patch'], ['mRect', 'rect'], ['mPan', 'pan']]) $('#' + id).setAttribute('aria-pressed', k === m);
+  $('#calCanvas').style.cursor = m === 'pan' ? 'grab' : 'crosshair';
+}
+$('#mPatch').onclick = () => setMode('patch'); $('#mRect').onclick = () => setMode('rect'); $('#mPan').onclick = () => setMode('pan');
+$('#rnBlue').onclick = () => { state.cal.renorm = 'blue'; setRenormUI(); scheduleFit(); };
+$('#rnNone').onclick = () => { state.cal.renorm = 'none'; setRenormUI(); scheduleFit(); };
+$('#calFit').onclick = () => calView.fit(); $('#calOne').onclick = () => calView.oneToOne();
+$('#calOpenBtn').onclick = () => $('#calFile').click();
+$('#calEmptyBtn').onclick = () => (state.cal.layout === 'multi' ? $('#calFiles') : $('#calFile')).click();
+$('#calAddBtn').onclick = () => $('#calFiles').click();
+$('#calFiles').addEventListener('change', e => { if (e.target.files.length) addImages(e.target.files); e.target.value = ''; });
+$('#lySingle').onclick = () => setLayout('single'); $('#lyMulti').onclick = () => setLayout('multi');
+$('#roiApply').onclick = () => { for (const p of state.cal.points) if (p.scan) { const r = centralRoi(p.scan); addRoi(r[0], r[1], r[2], r[3], null, p.scan, p.file, true); } renderPoints(); calView.draw(); scheduleFit(); };
+$('#calFile').addEventListener('change', e => { if (e.target.files[0]) openCalScan(e.target.files[0]); e.target.value = ''; });
+$('#ptControl').onclick = () => $('#ptCtrlFile').click();
+$('#ptCtrlFile').onchange = async e => {
+  const files = [...e.target.files]; e.target.value = ''; let n = 0;
+  for (const f of files) {
+    try {
+      const sc = await loadScan(f); sc.isControl = true;
+      const r = centralRoi(sc), p = addRoi(r[0], r[1], r[2], r[3], 0, sc, f.name, true); p.control = true; n++;
+      if (!state.cal.scan) { state.cal.scan = sc; setCalImage(sc); }
+    } catch (err) { toast(err.message || 'Could not open ' + f.name); }
+  }
+  if (n) { state.cal.example = false; updateBanner(); renderPoints(); calView.draw(); scheduleFit(); toast(`Added ${n} control${n === 1 ? '' : 's'} at 0 Gy. Click its row to view it and move the ROI.`); }
+};
+$('#clipMax').addEventListener('input', () => { clipEdited = true; });
+$('#ptClear').onclick = () => { state.cal.points = []; renderPoints(); calView.draw(); scheduleFit(); };
+$('#pasteAdd').onclick = () => {
+  const lines = $('#pasteBox').value.split(/\n/).map(s => s.trim()).filter(Boolean); let added = 0;
+  for (const ln of lines) {
+    const v = ln.split(/[\s,;\t]+/).map(Number).filter(x => isFinite(x));
+    let mean, sd, dose;
+    if (v.length >= 7) { mean = [v[0], v[2], v[4]].map(x => x / 255); sd = [v[1], v[3], v[5]].map(x => x / 255); dose = v[6]; }
+    else if (v.length === 4) { mean = v.slice(0, 3).map(x => x / 255); sd = [0, 0, 0]; dose = v[3]; }
+    else continue;
+    state.cal.points.push({ id: state.cal.nextId++, x0: 0, y0: 0, w: 0, h: 0, mean, sd, dose }); added++;
+  }
+  $('#pasteMsg').textContent = added ? `Added ${added} row${added > 1 ? 's' : ''}.` : 'No valid rows found.'; if (added) { $('#pasteBox').value = ''; renderPoints(); scheduleFit(); }
+};
+$('#doseOpenBtn').onclick = $('#doseEmptyBtn').onclick = () => $('#doseFile').click();
+$('#doseFile').addEventListener('change', e => { if (e.target.files[0]) openDoseScan(e.target.files[0]); e.target.value = ''; });
+$('#vScan').onclick = () => setDoseView('scan'); $('#vDose').onclick = () => { if (state.dose.map) setDoseView('dose'); };
+$('#tPan').onclick = () => setTool('pan'); $('#tCrop').onclick = () => setTool('crop'); $('#tLevel').onclick = () => setTool('level'); $('#tMeas').onclick = () => setTool('meas');
+$('#doseFitView').onclick = () => doseView.fit();
+$('#doConvert').onclick = convert;
+$('#wR').addEventListener('input', updateWeightUI);
+for (const id of ['binF', 'dpi']) $('#' + id).addEventListener('input', updatePxInfo);
+$('#dispMax').addEventListener('input', () => { if (state.dose.map) { renderDoseCanvas(); drawColorbar(); doseView.draw(); } });
+
+
+/* ------------------------------------------------------------------ compare: RTDOSE reader */
+function parseRtDose(buf, name) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf), n = buf.byteLength;
+  const LONG = new Set(['OB', 'OW', 'OF', 'OD', 'OL', 'SQ', 'UT', 'UN', 'UC', 'UR', 'OV', 'SV', 'UV']);
+  const txt = (a, b) => { let s = ''; for (let i = a; i < b; i++) s += String.fromCharCode(u8[i]); return s.replace(/[\0 ]+$/, '').trim(); };
+  let p = 0;
+  if (n > 132 && txt(128, 132) === 'DICM') p = 132;
+  const hdr = (pos, expl) => {
+    const g = dv.getUint16(pos, true), e = dv.getUint16(pos + 2, true);
+    if (g === 0xFFFE) return { g, e, len: dv.getUint32(pos + 4, true), vs: pos + 8 };
+    if (expl) {
+      const vr = String.fromCharCode(u8[pos + 4], u8[pos + 5]);
+      if (LONG.has(vr)) return { g, e, vr, len: dv.getUint32(pos + 8, true), vs: pos + 12 };
+      return { g, e, vr, len: dv.getUint16(pos + 6, true), vs: pos + 8 };
+    }
+    return { g, e, len: dv.getUint32(pos + 4, true), vs: pos + 8 };
+  };
+  const skipItem = (pos, expl) => { for (;;) { const h = hdr(pos, expl); if (h.g === 0xFFFE && h.e === 0xE00D) return h.vs; pos = h.len === 0xFFFFFFFF ? skipUndef(h.vs, expl) : h.vs + h.len; } };
+  const skipUndef = (pos, expl) => {
+    for (;;) {
+      const h = hdr(pos, expl);
+      if (h.g === 0xFFFE && h.e === 0xE0DD) return h.vs;
+      if (h.g === 0xFFFE && h.e === 0xE000) pos = h.len === 0xFFFFFFFF ? skipItem(h.vs, expl) : h.vs + h.len;
+      else throw new Error('Unreadable DICOM sequence.');
+    }
+  };
+  let explicit = true, ts = '1.2.840.10008.1.2.1', metaDone = false;
+  if (p === 0) { // no preamble: guess the syntax from the first element
+    const vr = String.fromCharCode(u8[4], u8[5]); explicit = /^[A-Z]{2}$/.test(vr); ts = explicit ? ts : '1.2.840.10008.1.2';
+  }
+  const t = {};
+  let pix = null;
+  while (p + 8 <= n) {
+    const h0 = hdr(p, explicit || (!metaDone && dv.getUint16(p, true) === 2)); const h = h0;
+    if (h.g !== 2 && !metaDone) {
+      metaDone = true;
+      if (ts === '1.2.840.10008.1.2') explicit = false; else if (ts === '1.2.840.10008.1.2.1') explicit = true;
+      else throw new Error('This RTDOSE uses a compressed or unsupported transfer syntax (' + ts + '). Export it uncompressed (explicit or implicit little endian).');
+      continue;
+    }
+    const tag = ((h.g << 16) | h.e) >>> 0;
+    if (h.len === 0xFFFFFFFF) {
+      if (tag === 0x7FE00010) throw new Error('Compressed pixel data is not supported.');
+      p = skipUndef(h.vs, explicit || h.g === 2); continue;
+    }
+    if (tag === 0x7FE00010) { pix = { off: h.vs, len: h.len }; p = h.vs + h.len; continue; }
+    if (h.vs + h.len > n) break;
+    const v = (h.vr === 'US' || (!h.vr && h.len === 2)) ? dv.getUint16(h.vs, true) : null;
+    switch (tag) {
+      case 0x00020010: ts = txt(h.vs, h.vs + h.len); break;
+      case 0x00280002: t.spp = v; break;
+      case 0x00280008: t.frames = parseInt(txt(h.vs, h.vs + h.len)); break;
+      case 0x00280010: t.rows = v; break;
+      case 0x00280011: t.cols = v; break;
+      case 0x00280100: t.bits = v; break;
+      case 0x00280103: t.signed = v; break;
+      case 0x00200032: t.ipp = txt(h.vs, h.vs + h.len).split('\\').map(Number); break;
+      case 0x00200037: t.iop = txt(h.vs, h.vs + h.len).split('\\').map(Number); break;
+      case 0x00280030: t.ps = txt(h.vs, h.vs + h.len).split('\\').map(Number); break;
+      case 0x3004000C: t.gfov = txt(h.vs, h.vs + h.len).split('\\').map(Number); break;
+      case 0x3004000E: t.scale = parseFloat(txt(h.vs, h.vs + h.len)); break;
+      case 0x30040002: t.units = txt(h.vs, h.vs + h.len); break;
+      case 0x3004000A: t.sum = txt(h.vs, h.vs + h.len); break;
+      case 0x00100010: t.patient = txt(h.vs, h.vs + h.len); break;
+      case 0x00080060: t.modality = txt(h.vs, h.vs + h.len); break;
+    }
+    p = h.vs + h.len;
+  }
+  if (t.modality && t.modality !== 'RTDOSE') throw new Error('This is a ' + t.modality + ' file, not an RTDOSE.');
+  if (!pix || !t.rows || !t.cols || !t.ipp || !t.ps || !t.scale) throw new Error('Not a readable RTDOSE (missing pixel data, spacing, position or dose scaling).');
+  const nx = t.cols, ny = t.rows, nz = t.frames || 1, bits = t.bits || 16;
+  if ((t.spp || 1) !== 1) throw new Error('Colour dose images are not supported.');
+  const iop = t.iop || [1, 0, 0, 0, 1, 0];
+  if (pix.len < nx * ny * nz * bits / 8) throw new Error('Pixel data is shorter than the grid says.');
+  const cnt = nx * ny * nz, raw = buf.slice(pix.off, pix.off + cnt * bits / 8), data0 = new Float32Array(cnt);
+  const src = bits === 32 ? (t.signed ? new Int32Array(raw) : new Uint32Array(raw)) : bits === 16 ? (t.signed ? new Int16Array(raw) : new Uint16Array(raw)) : new Uint8Array(raw);
+  for (let i = 0; i < cnt; i++) data0[i] = src[i] * t.scale;
+  // map the stored axes (column index i, row index j, frame k) onto patient x, y, z; any 90-degree orientation is accepted
+  const rv = iop.slice(0, 3), cv = iop.slice(3, 6), nv = [rv[1] * cv[2] - rv[2] * cv[1], rv[2] * cv[0] - rv[0] * cv[2], rv[0] * cv[1] - rv[1] * cv[0]];
+  const axInfo = v => { let w = 0; for (let q = 1; q < 3; q++) if (Math.abs(v[q]) > Math.abs(v[w])) w = q; if (Math.abs(Math.abs(v[w]) - 1) > 0.01) return null; return { w, s: v[w] > 0 ? 1 : -1 }; };
+  const A = [axInfo(rv), axInfo(cv), axInfo(nv)];
+  if (!A[0] || !A[1] || !A[2] || new Set(A.map(a => a.w)).size !== 3) throw new Error('This dose grid is tilted (image orientation ' + iop.map(x => +x.toFixed(3)).join(',') + '). Only grids aligned to the patient axes (including 90-degree rotated ones) are supported.');
+  if (nz > 1 && (!t.gfov || t.gfov.length < nz)) throw new Error('GridFrameOffsetVector is missing.');
+  const N = [nx, ny, nz];
+  const off = [t.ps[1] * 1, t.ps[0] * 1, 0];
+  const crd = [0, 1, 2].map(a => { const c = new Float64Array(N[a]); for (let q = 0; q < N[a]; q++) c[q] = t.ipp[A[a].w] + A[a].s * (a === 2 ? (nz > 1 ? t.gfov[q] : 0) : off[a] * q); return c; });
+  const NO = [0, 0, 0]; for (let a = 0; a < 3; a++) NO[A[a].w] = N[a];
+  const outStride = [1, NO[0], NO[0] * NO[1]];
+  const oi = [0, 1, 2].map(a => { const m = new Int32Array(N[a]); for (let q = 0; q < N[a]; q++) m[q] = (A[a].s > 0 ? q : N[a] - 1 - q) * outStride[A[a].w]; return m; });
+  const data = new Float32Array(cnt); let pi = 0;
+  for (let k = 0; k < nz; k++) { const ok = oi[2][k]; for (let j = 0; j < ny; j++) { const oj = ok + oi[1][j]; for (let i = 0; i < nx; i++) data[oj + oi[0][i]] = data0[pi++]; } }
+  const axc = [null, null, null]; for (let a = 0; a < 3; a++) { const c = A[a].s > 0 ? crd[a] : crd[a].slice().reverse(); axc[A[a].w] = c; }
+  const uni = c => { if (c.length < 2) return true; const d = (c[c.length - 1] - c[0]) / (c.length - 1); for (let q = 1; q < c.length; q++) if (Math.abs(c[q] - c[q - 1] - d) > 1e-3 * Math.abs(d) + 1e-6) return false; return true; };
+  if (!uni(axc[0]) || !uni(axc[1])) throw new Error('The dose grid has non-uniform spacing along x or y; not supported.');
+  const nxo = NO[0], nyo = NO[1], nzo = NO[2];
+  let mx = 0; for (let i = 0; i < cnt; i++) if (data[i] > mx) mx = data[i];
+  const mxi = data.indexOf(mx);
+  const zs = Float64Array.from(axc[2]);
+  const dxo = nxo > 1 ? (axc[0][nxo - 1] - axc[0][0]) / (nxo - 1) : t.ps[1], dyo = nyo > 1 ? (axc[1][nyo - 1] - axc[1][0]) / (nyo - 1) : t.ps[0];
+  const dz = nzo > 1 ? (zs[nzo - 1] - zs[0]) / (nzo - 1) : dxo;
+  const uniformZ = uni(zs);
+  const nxy = nxo * nyo, k0 = (mxi / nxy) | 0, j0 = ((mxi % nxy) / nxo) | 0, i0 = mxi % nxo;
+  const dx = dxo, dy = dyo;
+  return { name, nx: nxo, ny: nyo, nz: nzo, x0: axc[0][0], y0: axc[1][0], dx, dy, zs, dz, uniformZ, data, max: mx, units: t.units || 'GY', sum: t.sum || '', patient: t.patient || '', rotated: !(A[0].w === 0 && A[1].w === 1 && A[0].s > 0 && A[1].s > 0),
+    maxAt: { x: axc[0][0] + i0 * dx, y: axc[1][0] + j0 * dy, z: zs[k0] } };
+}
+function volAt(v, x, y, z) {
+  const fx = (x - v.x0) / v.dx, fy = (y - v.y0) / v.dy;
+  if (!(fx >= 0 && fy >= 0 && fx <= v.nx - 1 && fy <= v.ny - 1) || v.nx < 2 || v.ny < 2) return NaN;
+  const i0 = Math.min(v.nx - 2, Math.floor(fx)), j0 = Math.min(v.ny - 2, Math.floor(fy)), ax = fx - i0, ay = fy - j0, d = v.data, nx = v.nx, nxy = nx * v.ny;
+  let k0 = 0, fz = 0;
+  if (v.nz === 1) { if (Math.abs(z - v.zs[0]) > 0.5 * v.dx) return NaN; }
+  else {
+    const zs = v.zs; if (!(z >= zs[0] && z <= zs[v.nz - 1])) return NaN;
+    if (v.uniformZ) { const f = (z - zs[0]) / v.dz; k0 = Math.min(v.nz - 2, Math.floor(f)); fz = f - k0; }
+    else { let lo = 0, hi = v.nz - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (zs[m] <= z) lo = m; else hi = m; } k0 = lo; fz = (z - zs[lo]) / (zs[lo + 1] - zs[lo]); }
+  }
+  const b = k0 * nxy + j0 * nx + i0;
+  const c0 = (d[b] * (1 - ax) + d[b + 1] * ax) * (1 - ay) + (d[b + nx] * (1 - ax) + d[b + nx + 1] * ax) * ay;
+  if (v.nz === 1) return c0;
+  const b2 = b + nxy, c1 = (d[b2] * (1 - ax) + d[b2 + 1] * ax) * (1 - ay) + (d[b2 + nx] * (1 - ax) + d[b2 + nx + 1] * ax) * ay;
+  return c0 * (1 - fz) + c1 * fz;
+}
+
+/* ------------------------------------------------------------------ compare: plane and views */
+const cmp = { vol: null, pos: { x: 0, y: 0, z: 0 }, normal: 'y', res: null, ptSel: null, prof: { dir: 'h', i: -1 }, busy: false };
+const planeAxes = n => n === 'y' ? ['x', 'z'] : n === 'z' ? ['x', 'y'] : ['y', 'z'];
+const planeVSign = n => planeAxes(n)[1] === 'z' ? -1 : 1;   // film "down" runs toward -z so the film looks like the coronal/sagittal view
+function sampleAt(v, n, nval, u, vv) { const a = planeAxes(n), p = { x: 0, y: 0, z: 0 }; p[n] = nval; p[a[0]] = u; p[a[1]] = vv; return volAt(v, p.x, p.y, p.z); }
+function volExt(v) {
+  return { x: [v.x0 - v.dx / 2, v.x0 + (v.nx - 0.5) * v.dx], y: [v.y0 - v.dy / 2, v.y0 + (v.ny - 0.5) * v.dy],
+    z: [v.zs[0] - Math.abs(v.dz) / 2, v.zs[v.nz - 1] + Math.abs(v.dz) / 2] };
+}
+function nearestZ(v, z) { let b = 0, bd = Infinity; for (let k = 0; k < v.nz; k++) { const dd = Math.abs(v.zs[k] - z); if (dd < bd) { bd = dd; b = k; } } return b; }
+const VIEWS = [
+  { cv: 'cvAx', t: 'cAxT', axis: 'z', ua: 'x', va: 'y', down: true },
+  { cv: 'cvCo', t: 'cCoT', axis: 'y', ua: 'x', va: 'z', down: false },
+  { cv: 'cvSa', t: 'cSaT', axis: 'x', ua: 'y', va: 'z', down: false }];
+const sliceCache = {};
+function buildSlice(view) {
+  const v = cmp.vol, nx = v.nx, ny = v.ny, nz = v.nz, nxy = nx * ny, d = v.data;
+  const key = view.axis + ':' + (view.axis === 'z' ? nearestZ(v, cmp.pos.z) : view.axis === 'y' ? clamp(Math.round((cmp.pos.y - v.y0) / v.dy), 0, ny - 1) : clamp(Math.round((cmp.pos.x - v.x0) / v.dx), 0, nx - 1));
+  if (sliceCache[view.cv] && sliceCache[view.cv].key === key) return sliceCache[view.cv].cv;
+  const idx = +key.split(':')[1]; let w, h, get;
+  if (view.axis === 'z') { w = nx; h = ny; get = (i, r) => d[idx * nxy + r * nx + i]; }
+  else if (view.axis === 'y') { w = nx; h = nz; get = (i, r) => d[(nz - 1 - r) * nxy + idx * nx + i]; }
+  else { w = ny; h = nz; get = (i, r) => d[(nz - 1 - r) * nxy + i * nx + idx]; }
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const ctx = cv.getContext('2d'), im = ctx.createImageData(w, h), px = im.data, mx = v.max || 1;
+  const lut = Array.from({ length: 256 }, (_, i) => cmap(i / 255));
+  for (let r = 0; r < h; r++) for (let i = 0; i < w; i++) { const c = lut[Math.min(255, Math.round(get(i, r) / mx * 255))], j = (r * w + i) * 4; px[j] = c[0]; px[j + 1] = c[1]; px[j + 2] = c[2]; px[j + 3] = 255; }
+  ctx.putImageData(im, 0, 0); sliceCache[view.cv] = { key, cv }; return cv;
+}
+function renderViews() {
+  const v = cmp.vol; if (!v) return; const ext = volExt(v);
+  for (const view of VIEWS) {
+    const cv = $('#' + view.cv), ctx = cv.getContext('2d'), U = ext[view.ua], V = ext[view.va], W = U[1] - U[0], H = V[1] - V[0];
+    const cw = 320, ch = clamp(Math.round(cw * H / W), 110, 440); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+    ctx.fillStyle = css('--viewer'); ctx.fillRect(0, 0, cw, ch); ctx.imageSmoothingEnabled = false; ctx.drawImage(buildSlice(view), 0, 0, cw, ch);
+    const px = u => (u - U[0]) / W * cw, py = vv => (view.down ? (vv - V[0]) / H : (V[1] - vv) / H) * ch;
+    for (const ax of [view.ua, view.va]) {
+      const isPlane = ax === cmp.normal; ctx.lineWidth = isPlane ? 2 : 1; ctx.strokeStyle = isPlane ? '#ff4fd8' : 'rgba(255,255,255,.75)'; ctx.setLineDash(isPlane ? [] : [5, 4]); ctx.beginPath();
+      if (ax === view.ua) { const x = px(cmp.pos[ax]); ctx.moveTo(x, 0); ctx.lineTo(x, ch); } else { const y = py(cmp.pos[ax]); ctx.moveTo(0, y); ctx.lineTo(cw, y); }
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    $('#' + view.t).textContent = `${view.axis} = ${fix(cmp.pos[view.axis], 1)} mm`;
+  }
+  for (const a of ['x', 'y', 'z']) { $('#sl' + a.toUpperCase()).value = cmp.pos[a]; $('#nm' + a.toUpperCase()).value = +cmp.pos[a].toFixed(2); }
+  updateFilmInfo();
+}
+function setupSliders() {
+  const v = cmp.vol, st = { x: v.dx, y: v.dy, z: Math.abs(v.dz) };
+  const rng = { x: [v.x0, v.x0 + (v.nx - 1) * v.dx], y: [v.y0, v.y0 + (v.ny - 1) * v.dy], z: [v.zs[0], v.zs[v.nz - 1]] };
+  for (const a of ['x', 'y', 'z']) { const s = $('#sl' + a.toUpperCase()), nm = $('#nm' + a.toUpperCase()); s.min = rng[a][0]; s.max = rng[a][1]; s.step = st[a]; s.disabled = false; nm.min = rng[a][0]; nm.max = rng[a][1]; nm.disabled = false; }
+}
+function setPos(a, val, keep) { const v = cmp.vol; if (!v) return; const s = $('#sl' + a.toUpperCase()); cmp.pos[a] = clamp(val, +s.min, +s.max); if (!keep) renderViews(); if (cmp.res && !cmp.busy) liveSoon(); }
+async function openRtDose(file) {
+  try {
+    const buf = await file.arrayBuffer(), vol = parseRtDose(buf, file.name); cmp.vol = vol; cmp.res = null; cmp.ptSel = null; for (const k in sliceCache) delete sliceCache[k];
+    setupSliders(); cmp.pos = { x: vol.maxAt.x, y: vol.maxAt.y, z: vol.maxAt.z };
+    $('#cmpInfo').textContent = `${file.name}: ${vol.nx} × ${vol.ny} × ${vol.nz} voxels, ${fix(vol.dx, 2)} × ${fix(vol.dy, 2)} × ${fix(Math.abs(vol.dz), 2)} mm, max ${fix(vol.max, 2)} ${vol.units === 'RELATIVE' ? '(relative)' : 'Gy'}${vol.sum ? ', ' + vol.sum : ''}${vol.units === 'RELATIVE' ? '. Relative dose: use a normalization option.' : ''}`;
+    renderViews(); updateCmpButtons(); clearResults(); toast('Opened ' + file.name + '. Sliders start at the maximum dose.');
+  } catch (e) { toast(e.message || 'Could not read that file.'); }
+}
+function updateFilmInfo() {
+  const m = state.dose.map, el = $('#cmpFilmInfo'); if (!m) { el.textContent = 'Convert a film on tab 2 first.'; return; }
+  const [ua, va] = planeAxes(cmp.normal);
+  el.textContent = `Film dose map ${m.ow} × ${m.oh} px at ${m.mm.toFixed(3)} mm (${fix(m.ow * m.mm / 10, 1)} × ${fix(m.oh * m.mm / 10, 1)} cm) from ${state.dose.scan.name}. Film centre at ${ua} = ${fix(cmp.pos[ua] + planeShift()[0], 1)}, ${va} = ${fix(cmp.pos[va] + planeShift()[1], 1)} mm in the ${cmp.normal} = ${fix(cmp.pos[cmp.normal], 1)} mm plane.`;
+}
+function updateCmpButtons() { const ok = !!cmp.vol && !!state.dose.map; $('#cmpRun').disabled = !ok || cmp.busy; $('#cmpAlign').disabled = !ok || cmp.busy; $('#cmpOpt').disabled = !ok || cmp.busy; $('#cmpUndo').disabled = !cmp.prevShift || cmp.busy; $('#cmpExport').disabled = !cmp.res; }
+function setNormal(n) {
+  cmp.normal = n; for (const [id, k] of [['pnY', 'y'], ['pnZ', 'z'], ['pnX', 'x']]) $('#' + id).setAttribute('aria-pressed', k === n); cmp.res = null; clearResults(); renderViews(); updateCmpButtons();
+}
+for (const view of VIEWS) {
+  const c = $('#' + view.cv);
+  c.addEventListener('pointerdown', e => {
+    const v = cmp.vol; if (!v) return; const r = c.getBoundingClientRect(), ext = volExt(v), U = ext[view.ua], V = ext[view.va];
+    const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+    setPos(view.ua, U[0] + fx * (U[1] - U[0]), true); setPos(view.va, view.down ? V[0] + fy * (V[1] - V[0]) : V[1] - fy * (V[1] - V[0]), true); renderViews();
+  });
+}
+for (const a of ['X', 'Y', 'Z']) {
+  $('#sl' + a).addEventListener('input', e => setPos(a.toLowerCase(), parseFloat(e.target.value)));
+  $('#nm' + a).addEventListener('change', e => { const v = parseFloat(e.target.value); if (isFinite(v)) setPos(a.toLowerCase(), v); });
+}
+$('#pnY').onclick = () => setNormal('y'); $('#pnZ').onclick = () => setNormal('z'); $('#pnX').onclick = () => setNormal('x');
+$('#cmpOpen').onclick = () => $('#cmpFile').click();
+$('#cmpFile').addEventListener('change', e => { if (e.target.files[0]) openRtDose(e.target.files[0]); e.target.value = ''; });
+
+function syncNormUI() { const m = $('#nmMode').value; $('#nmHighWrap').style.opacity = m === 'high' ? 1 : .4; $('#nmRadWrap').style.opacity = m === 'point' ? 1 : .4; }
+$('#nmMode').addEventListener('change', syncNormUI); syncNormUI();
+
+/* ------------------------------------------------------------------ compare: film placement, normalization, gamma */
+function orient(a, b, flip, rot) {
+  if (flip.includes('h')) a = -a; if (flip.includes('v')) b = -b;
+  for (let k = 0; k < rot / 90; k++) { const t = a; a = -b; b = t; }
+  return [a, b];
+}
+function planeShift() {
+  const x = parseFloat($('#shX').value) || 0, y = parseFloat($('#shY').value) || 0, [ao, bo] = orient(x, y, $('#orFlip').value, parseInt($('#orRot').value) || 0);
+  return [ao, planeVSign(cmp.normal) * bo];
+}
+function readCmpParams() {
+  const ps = planeShift();
+  return { shX: parseFloat($('#shX').value) || 0, shY: parseFloat($('#shY').value) || 0, shU: ps[0], shV: ps[1], rot: parseInt($('#orRot').value) || 0, flip: $('#orFlip').value,
+    mode: $('#nmMode').value, high: clamp(parseFloat($('#nmHigh').value) || 90, 1, 100), rad: Math.max(0, parseFloat($('#nmRad').value) || 0), thr: Math.max(0, parseFloat($('#thrPct').value) || 0),
+    pix: Math.max(0.05, parseFloat($('#anPix').value) || 0.5), gOn: $('#gmOn').checked, gPct: parseFloat($('#gmPct').value) || 3, gDta: parseFloat($('#gmDta').value) || 3,
+    gType: $('#gmType').value, gRef: $('#gmRef').value };
+}
+function binFilm(m, bf) {
+  const ow = Math.floor(m.ow / bf), oh = Math.floor(m.oh / bf), out = new Float32Array(ow * oh), a2 = bf * bf;
+  for (let j = 0; j < oh; j++) for (let i = 0; i < ow; i++) { let s = 0; for (let q = 0; q < bf; q++) { let k = (j * bf + q) * m.ow + i * bf; for (let r = 0; r < bf; r++, k++) s += m.data[k]; } out[j * ow + i] = s / a2; }
+  return { data: out, ow, oh, s: m.mm * bf };
+}
+function percentile(arr, p) { const a = Float32Array.from(arr).sort(); return a.length ? a[Math.min(a.length - 1, Math.max(0, Math.round(p / 100 * (a.length - 1))))] : NaN; }
+async function runCompare(live) {
+  live = live === true; const vol = cmp.vol, m = state.dose.map; if (!vol || !m) return; if (cmp.busy) { if (live) cmp.again = true; return; }
+  cmp.busy = true; if (!live) updateCmpButtons(); const P = readCmpParams(); if (live) P.gOn = false; const n = cmp.normal, [ua, va] = planeAxes(n), vs = planeVSign(n), prog = $('#cmpProg'), bar = prog.firstElementChild;
+  if (!live) { prog.hidden = false; bar.style.width = '0'; $('#cmpRunMsg').textContent = 'Working…'; await tick(); }
+  try {
+    const t0 = performance.now(), bf = Math.max(1, Math.round(P.pix / m.mm)), F = binFilm(m, bf), ow = F.ow, oh = F.oh, s = F.s, N = ow * oh;
+    const cu = cmp.pos[ua] + P.shU, cv = cmp.pos[va] + P.shV, nval = cmp.pos[n], R = new Float32Array(N), A = new Float32Array(N), B = new Float32Array(N);
+    const U = new Float32Array(N), V = new Float32Array(N);
+    for (let j = 0; j < oh; j++) for (let i = 0; i < ow; i++) {
+      const [ao, bo] = orient((i + 0.5 - ow / 2) * s, (j + 0.5 - oh / 2) * s, P.flip, P.rot), k = j * ow + i, u = cu + ao, v = cv + vs * bo;
+      U[k] = u; V[k] = v; R[k] = sampleAt(vol, n, nval, u, v);
+    }
+    const film = F.data, valid = new Uint8Array(N); let nv = 0;
+    for (let k = 0; k < N; k++) if (isFinite(film[k]) && isFinite(R[k])) { valid[k] = 1; nv++; }
+    if (nv < 50) throw new Error('The film does not overlap the dose grid in this plane. Move the plane or use Auto-align.');
+    let fMax = 0, rMax = 0; for (let k = 0; k < N; k++) if (valid[k]) { if (film[k] > fMax) fMax = film[k]; if (R[k] > rMax) rMax = R[k]; }
+    let nf = 1, nr = 1, ptInfo = '', units = '%';
+    const meanOf = (arr, test) => { let sm = 0, c = 0; for (let k = 0; k < N; k++) if (valid[k] && test(k)) { sm += arr[k]; c++; } return c ? sm / c : NaN; };
+    if (P.mode === 'none') { units = 'Gy'; }
+    else if (P.mode === 'max') { nf = fMax; nr = rMax; }
+    else if (P.mode === 'high') { nf = meanOf(film, k => film[k] >= P.high / 100 * fMax); nr = meanOf(R, k => R[k] >= P.high / 100 * rMax); }
+    else {
+      let pi = cmp.ptSel; if (!pi) { let bk = 0; for (let k = 0; k < N; k++) if (valid[k] && R[k] > R[bk]) bk = k; pi = { i: bk % ow, j: (bk / ow) | 0 }; ptInfo = ' (default: RTDOSE maximum; click a map to choose)'; }
+      const rp = Math.max(1, Math.ceil(P.rad / s)), inR = k => { const i = k % ow, j = (k / ow) | 0; return (i - pi.i) ** 2 + (j - pi.j) ** 2 <= rp * rp; };
+      nf = meanOf(film, inR); nr = meanOf(R, inR); cmp.ptUsed = pi;
+      var ptTxt = `point (film pixel ${pi.i}, ${pi.j}; plane ${ua} = ${fix(U[pi.j * ow + pi.i], 1)}, ${va} = ${fix(V[pi.j * ow + pi.i], 1)} mm), radius ${P.rad} mm${ptInfo}`;
+    }
+    if (!(nf > 0) || !(nr > 0)) throw new Error('A normalization value came out as zero. Check the placement or choose another normalization.');
+    const sf = P.mode === 'none' ? 1 : 100 / nf, sr = P.mode === 'none' ? 1 : 100 / nr, Dn = P.mode === 'none' ? rMax : 100;
+    for (let k = 0; k < N; k++) { A[k] = film[k] * sf; B[k] = R[k] * sr; }   // A = film, B = RTDOSE in the chosen units
+    const thrAbs = P.thr / 100 * Dn, inc = new Uint8Array(N); let ni = 0;
+    for (let k = 0; k < N; k++) if (valid[k] && B[k] >= thrAbs) { inc[k] = 1; ni++; }
+    if (ni < 20) throw new Error('Too few pixels are above the threshold. Lower the threshold or check the placement.');
+    const diff = new Float32Array(N).fill(NaN), dl = []; let sd = 0, sd2 = 0, sa = 0, sF = 0, sR = 0, mnD = Infinity, mxD = -Infinity;
+    for (let k = 0; k < N; k++) if (inc[k]) { const dd = A[k] - B[k]; diff[k] = dd; dl.push(dd); sd += dd; sd2 += dd * dd; sa += Math.abs(dd); sF += A[k]; sR += B[k]; if (dd < mnD) mnD = dd; if (dd > mxD) mxD = dd; }
+    const mean = sd / ni, sdv = Math.sqrt(Math.max(0, (sd2 - ni * mean * mean) / Math.max(1, ni - 1))), within = lim => { let c = 0; for (const x of dl) if (Math.abs(x) <= lim / 100 * Dn) c++; return 100 * c / ni; };
+    const stats = { ni, nv, area: ni * s * s / 100, mean, sd: sdv, mae: sa / ni, rms: Math.sqrt(sd2 / ni), min: mnD, max: mxD, p5: percentile(dl, 5), p95: percentile(dl, 95),
+      w1: within(1), w2: within(2), w3: within(3), w5: within(5), meanF: sF / ni, meanR: sR / ni, ratio: sF / sR, fMax, rMax, nf, nr, Dn, units };
+    // gamma
+    let gam = null, gs = null;
+    if (P.gOn) {
+      const ref = P.gRef === 'film' ? A : B, ev = P.gRef === 'film' ? B : A, rw = Math.ceil(2 * P.gDta / s), offs = [];
+      for (let dj = -rw; dj <= rw; dj++) for (let di = -rw; di <= rw; di++) { const d2 = (di * di + dj * dj) * s * s / (P.gDta * P.gDta); if (d2 <= 4) offs.push([di, dj, d2]); }
+      offs.sort((x, y) => x[2] - y[2]); const no = offs.length, oi = new Int32Array(no), oj = new Int32Array(no), od = new Float64Array(no);
+      offs.forEach((o, q) => { oi[q] = o[0]; oj[q] = o[1]; od[q] = o[2]; });
+      gam = new Float32Array(N).fill(NaN); const gl = []; let capped = 0;
+      for (let j = 0; j < oh; j++) {
+        for (let i = 0; i < ow; i++) {
+          const k = j * ow + i; if (!inc[k]) continue;
+          const crit = P.gPct / 100 * (P.gType === 'global' ? Dn : Math.max(ref[k], thrAbs)), c2 = 1 / (crit * crit), r0 = ref[k]; let best = 4;
+          for (let q = 0; q < no; q++) {
+            const d2 = od[q]; if (d2 >= best) break;
+            const ii = i + oi[q], jj = j + oj[q]; if (ii < 0 || jj < 0 || ii >= ow || jj >= oh) continue;
+            const e = ev[jj * ow + ii]; if (!valid[jj * ow + ii]) continue; const dd = e - r0, g2 = d2 + dd * dd * c2; if (g2 < best) best = g2;
+          }
+          if (best >= 4) capped++; gam[k] = Math.sqrt(best); gl.push(gam[k]);
+        }
+        if ((j & 15) === 15) { bar.style.width = (100 * j / oh) + '%'; await tick(); }
+      }
+      let sg = 0, pass = 0; for (const g of gl) { sg += g; if (g <= 1) pass++; }
+      gs = { pass: 100 * pass / gl.length, mean: sg / gl.length, p95: percentile(gl, 95), max: Math.max(...gl.slice(0, 200000)), capped, n: gl.length };
+    }
+    cmp.res = { live, P, ow, oh, s, A, B, diff, gam, inc, valid, U, V, stats, gs, ptTxt: typeof ptTxt === 'undefined' ? '' : ptTxt, cu, cv, n, ua, va, nval, bf, flipTxt: P.flip || 'none', time: (performance.now() - t0) / 1000 };
+    if (cmp.prof.i < 0) { let bk = -1, bv = -1; for (let k = 0; k < N; k++) if (inc[k] && B[k] > bv) { bv = B[k]; bk = k; } cmp.prof.i = cmp.prof.dir === 'h' ? (bk / ow) | 0 : bk % ow; }
+    cmp.prof.i = clamp(cmp.prof.i, 0, (cmp.prof.dir === 'h' ? oh : ow) - 1); resetProfSlider(true);
+    drawResults(); $('#cmpReport').textContent = buildReport(); $('#cmpRunMsg').textContent = live ? 'Live preview · gamma not updated, press Compare' : `Done in ${cmp.res.time.toFixed(1)} s` + (gs ? ` · gamma pass ${fix(gs.pass, 1)} %` : '');
+  } catch (e) { if (!live) toast(e.message || 'Comparison failed.'); $('#cmpRunMsg').textContent = e.message || 'Failed'; }
+  prog.hidden = true; bar.style.width = '0'; cmp.busy = false; updateCmpButtons();
+  if (cmp.again) { cmp.again = false; liveSoon(); }
+}
+function clearResults() { cmp.res = null; for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) $('#' + id)._im = null; for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) { const c = $('#' + id); c.width = 10; c.height = 10; } for (const id of ['rcFilmT', 'rcRefT', 'rcDiffT', 'rcGamT']) $('#' + id).textContent = ''; $('#cmpReport').textContent = 'Run a comparison to see the report.'; $('#cmpRunMsg').textContent = ''; const pc = $('#cmpProf'); pc.getContext('2d').clearRect(0, 0, pc.width, pc.height); $('#pfPos').disabled = true; $('#pfPosT').textContent = ''; updateCmpButtons(); }
+
+/* ------------------------------------------------------------------ compare: drawing */
+function paintMap(id, arr, r, color, extra) {
+  const c = $('#' + id); c.width = r.ow; c.height = r.oh; const ctx = c.getContext('2d'), im = ctx.createImageData(r.ow, r.oh), px = im.data;
+  for (let k = 0; k < r.ow * r.oh; k++) {
+    const j = k * 4; let col = null, dim = 1;
+    if (r.valid[k]) { const v = arr[k]; if (isFinite(v)) { col = color(v); if (!r.inc[k] && extra !== 'gamma' && extra !== 'diff') dim = 0.35; } }
+    if (!col) { px[j] = 38; px[j + 1] = 44; px[j + 2] = 41; px[j + 3] = 255; } else { px[j] = col[0] * dim; px[j + 1] = col[1] * dim; px[j + 2] = col[2] * dim; px[j + 3] = 255; }
+  }
+  c._im = im; ctx.putImageData(im, 0, 0);
+}
+for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) { const c = $('#' + id), w = document.createElement('div'), o = document.createElement('canvas'); w.className = 'pw'; o.className = 'ovl'; c.parentNode.insertBefore(w, c); w.appendChild(c); w.appendChild(o); c._ovl = o; }
+window.addEventListener('resize', () => { if (cmp.res) drawProfile(); });
+const PROF_COL = { h: '#ffab33', v: '#33d1e8' };
+function decorate(id) {
+  const r = cmp.res, c = $('#' + id); if (!r || !c._im || c._im.width !== r.ow || c.width !== r.ow) { if (c._ovl) c._ovl.getContext('2d').clearRect(0, 0, c._ovl.width, c._ovl.height); return; } const ctx = c.getContext('2d'); ctx.putImageData(c._im, 0, 0);
+  if (cmp.ptUsed && r.P.mode === 'point' && (id === 'rcFilm' || id === 'rcRef')) { const p = cmp.ptUsed; ctx.strokeStyle = '#ff4fd8'; ctx.lineWidth = Math.max(1, r.ow / 300); ctx.beginPath(); ctx.moveTo(p.i - 8, p.j); ctx.lineTo(p.i + 8, p.j); ctx.moveTo(p.i, p.j - 8); ctx.lineTo(p.i, p.j + 8); ctx.stroke(); }
+  const o = c._ovl; if (!o) return; const dpr = window.devicePixelRatio || 1, cw = c.clientWidth, ch = c.clientHeight; if (!cw || !ch) return;
+  if (o.width !== Math.round(cw * dpr) || o.height !== Math.round(ch * dpr)) { o.width = Math.round(cw * dpr); o.height = Math.round(ch * dpr); }
+  const g = o.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, cw, ch);
+  const h = cmp.prof.dir === 'h', col = PROF_COL[cmp.prof.dir], lw = 2, a = 9, p = h ? (cmp.prof.i + 0.5) / r.oh * ch : (cmp.prof.i + 0.5) / r.ow * cw;
+  const path = () => { g.beginPath(); if (h) { g.moveTo(0, p); g.lineTo(cw - a, p); } else { g.moveTo(p, 0); g.lineTo(p, ch - a); } };
+  const head = () => { g.beginPath(); if (h) { g.moveTo(cw, p); g.lineTo(cw - a * 1.8, p - a * .75); g.lineTo(cw - a * 1.8, p + a * .75); } else { g.moveTo(p, ch); g.lineTo(p - a * .75, ch - a * 1.8); g.lineTo(p + a * .75, ch - a * 1.8); } g.closePath(); };
+  g.lineJoin = 'round'; g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = lw + 2; path(); g.stroke(); head(); g.stroke();
+  g.strokeStyle = col; g.fillStyle = col; g.lineWidth = lw; path(); g.stroke(); head(); g.fill();
+}
+function drawResults() {
+  const r = cmp.res; if (!r) return; const u = r.stats.units, top = r.P.mode === 'none' ? Math.max(r.stats.fMax, r.stats.rMax) : 110;
+  paintMap('rcFilm', r.A, r, v => cmap(v / top), 'dose'); paintMap('rcRef', r.B, r, v => cmap(v / top), 'dose');
+  const dr = (r.P.mode === 'none' ? r.stats.Dn : 100) * Math.max(0.1, parseFloat($('#diffRange').value) || 10) / 100;
+  paintMap('rcDiff', r.diff, r, v => { const t = clamp(v / dr, -1, 1), a = Math.abs(t); return t < 0 ? [255 - a * 195, 255 - a * 155, 255 - a * 20] : [255 - a * 20, 255 - a * 175, 255 - a * 195]; }, 'diff');
+  if (r.gam) paintMap('rcGam', r.gam, r, g => { const t = clamp(g / 2, 0, 1); return t < 0.5 ? [38 + t * 2 * 207, 166 + t * 2 * 44, 91 - t * 2 * 41] : [245 - (t - .5) * 2 * 45, 210 - (t - .5) * 2 * 170, 50 - (t - .5) * 2 * 10]; }, 'gamma');
+  else { const c = $('#rcGam'); c.width = 10; c.height = 10; c._im = null; }
+  $('#rcFilmT').textContent = `0–${fix(top, 0)} ${u}`; $('#rcRefT').textContent = `0–${fix(top, 0)} ${u} · dim = below threshold`; $('#rcDiffT').textContent = `±${fix(dr, 1)} ${u}`; $('#rcGamT').textContent = r.gam ? `0–2 · ${r.P.gPct}%/${r.P.gDta} mm ${r.P.gType}` : r.live ? 'press Compare to update' : 'off';
+  drawProfile();
+}
+function profData() {
+  const r = cmp.res; if (!r) return null; const h = cmp.prof.dir === 'h', len = h ? r.ow : r.oh, i0 = cmp.prof.i, out = [];
+  for (let q = 0; q < len; q++) { const k = h ? i0 * r.ow + q : q * r.ow + i0; out.push({ pos: ((q + 0.5) - len / 2) * r.s, film: r.valid[k] ? r.A[k] : NaN, ref: r.valid[k] ? r.B[k] : NaN, inc: r.inc[k], gam: r.gam ? r.gam[k] : NaN }); }
+  return out;
+}
+function resetProfSlider(keepVal) {
+  const r = cmp.res, sl = $('#pfPos'); if (!r) return; const len = cmp.prof.dir === 'h' ? r.oh : r.ow; sl.min = 0; sl.max = len - 1; sl.disabled = false;
+  if (!keepVal || cmp.prof.i >= len || cmp.prof.i < 0) { let bk = -1, bv = -1; for (let k = 0; k < r.B.length; k++) if (r.inc[k] && r.B[k] > bv) { bv = r.B[k]; bk = k; } cmp.prof.i = bk < 0 ? Math.floor(len / 2) : (cmp.prof.dir === 'h' ? (bk / r.ow) | 0 : bk % r.ow); } sl.value = cmp.prof.i;
+}
+function drawProfile() {
+  for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) decorate(id);
+  const cv = $('#cmpProf'), ctx = cv.getContext('2d'), W = cv.width, H = cv.height, data = profData(); ctx.clearRect(0, 0, W, H); if (!data) return;
+  const r = cmp.res, ink = css('--ink'), mut = css('--muted'), line = css('--line'), L = 52, Rm = 14, T = 12, Bm = 34; let vmax = 0; for (const p of data) { if (p.film > vmax) vmax = p.film; if (p.ref > vmax) vmax = p.ref; } vmax = vmax > 0 ? vmax * 1.05 : 1;
+  const x0 = data[0].pos, x1 = data[data.length - 1].pos, X = x => L + (x - x0) / (x1 - x0) * (W - L - Rm), Y = v => T + (1 - v / vmax) * (H - T - Bm);
+  ctx.font = '11px ' + css('--mono'); ctx.fillStyle = mut; ctx.strokeStyle = line; ctx.lineWidth = 1;
+  for (let q = 0; q <= 4; q++) { const v = vmax * q / 4, y = Y(v); ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - Rm, y); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(fix(v, r.P.mode === 'none' ? 2 : 0), L - 6, y + 4); }
+  ctx.textAlign = 'center'; for (let q = 0; q <= 6; q++) { const x = x0 + (x1 - x0) * q / 6; ctx.fillText(fix(x, 0), X(x), H - Bm + 16); }
+  { const pc = PROF_COL[cmp.prof.dir]; ctx.fillStyle = pc; ctx.textAlign = 'center'; ctx.fillText(cmp.prof.dir === 'h' ? '◀ film left        mm from film centre (film x, arrow direction)        film right ▶' : '◀ film top        mm from film centre (film y, arrow direction)        film bottom ▶', (L + W - Rm) / 2, H - 6); ctx.fillStyle = mut; }
+  ctx.save(); ctx.translate(12, (T + H - Bm) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(r.stats.units === 'Gy' ? 'Dose (Gy)' : 'Dose (% of norm.)', 0, 0); ctx.restore();
+  ctx.fillStyle = 'rgba(128,128,128,.14)'; let run = null; for (let q = 0; q <= data.length; q++) { const ex = q < data.length && !data[q].inc; if (ex && run === null) run = q; if (!ex && run !== null) { ctx.fillRect(X(data[run].pos), T, X(data[q - 1].pos) - X(data[run].pos), H - T - Bm); run = null; } }
+  const plot = (key, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.beginPath(); let pen = false; for (const p of data) { const v = p[key]; if (!isFinite(v)) { pen = false; continue; } const x = X(p.pos), y = Y(v); if (!pen) { ctx.moveTo(x, y); pen = true; } else ctx.lineTo(x, y); } ctx.stroke(); };
+  plot('ref', css('--b')); plot('film', css('--r'));
+  ctx.textAlign = 'left'; ctx.fillStyle = css('--r'); ctx.fillText('Film', L + 8, T + 12); ctx.fillStyle = css('--b'); ctx.fillText('RTDOSE', L + 50, T + 12);
+  ctx.textAlign = 'right'; ctx.fillStyle = PROF_COL[cmp.prof.dir]; ctx.fillText((cmp.prof.dir === 'h' ? '━▶ horizontal line, row ' : '━▼ vertical line, column ') + cmp.prof.i, W - Rm - 4, T + 12); ctx.textAlign = 'left';
+  $('#pfPosT').textContent = (cmp.prof.dir === 'h' ? 'row ' : 'column ') + cmp.prof.i + ' · ' + fix(((cmp.prof.i + 0.5) - (cmp.prof.dir === 'h' ? r.oh : r.ow) / 2) * r.s, 1) + ' mm';
+}
+$('#pfPos').addEventListener('input', e => { cmp.prof.i = parseInt(e.target.value); drawProfile(); });
+for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) {
+  const c = $('#' + id), mv = e => {
+    const r = cmp.res; if (!r || $('#nmMode').value === 'point' && (id === 'rcFilm' || id === 'rcRef')) return; const b = c.getBoundingClientRect();
+    cmp.prof.i = cmp.prof.dir === 'h' ? clamp(Math.floor((e.clientY - b.top) / b.height * r.oh), 0, r.oh - 1) : clamp(Math.floor((e.clientX - b.left) / b.width * r.ow), 0, r.ow - 1);
+    $('#pfPos').value = cmp.prof.i; drawProfile();
+  };
+  c.classList.add('cmpmap');
+  c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); mv(e); });
+  c.addEventListener('pointermove', e => { if (e.buttons & 1) mv(e); });
+}
+$('#pfH').onclick = () => { cmp.prof.dir = 'h'; $('#pfH').setAttribute('aria-pressed', true); $('#pfV').setAttribute('aria-pressed', false); resetProfSlider(false); drawProfile(); };
+$('#pfV').onclick = () => { cmp.prof.dir = 'v'; $('#pfH').setAttribute('aria-pressed', false); $('#pfV').setAttribute('aria-pressed', true); resetProfSlider(false); drawProfile(); };
+for (const id of ['rcFilm', 'rcRef']) $('#' + id).addEventListener('click', e => {
+  const r = cmp.res; if (!r) return; const c = e.currentTarget, b = c.getBoundingClientRect(), i = clamp(Math.floor((e.clientX - b.left) / b.width * r.ow), 0, r.ow - 1), j = clamp(Math.floor((e.clientY - b.top) / b.height * r.oh), 0, r.oh - 1);
+  if ($('#nmMode').value !== 'point') return; cmp.ptSel = { i, j }; $('#nmPtInfo').textContent = `Normalization point set at film pixel ${i}, ${j}.`; runCompare();
+});
+$('#nmMode').addEventListener('change', () => { if (cmp.res && !cmp.busy) runCompare(); });
+$('#diffRange').addEventListener('input', () => { if (cmp.res) drawResults(); });
+
+/* ------------------------------------------------------------------ compare: report */
+function buildReport(forExport) {
+  const r = cmp.res; if (!r) return ''; const S = r.stats, P = r.P, L = [], u = S.units === 'Gy' ? 'Gy' : '% of normalization', vol = cmp.vol;
+  const modeTxt = { none: 'none (absolute dose, Gy)', max: 'maximum dose of each distribution', high: `mean of pixels at or above ${P.high} % of each maximum`, point: r.ptTxt }[P.mode];
+  L.push('FILM vs RTDOSE COMPARISON', `Created: ${new Date().toISOString()}`); if (r.live) L.push('NOTE: live preview after a placement change. Gamma was not recomputed; press Compare for the full report.'); L.push('', '[Inputs]');
+  L.push(`Film dose map: ${state.dose.scan ? state.dose.scan.name : ''}  (${state.dose.map.ow} x ${state.dose.map.oh} px, ${state.dose.map.mm.toFixed(4)} mm)`);
+  L.push(`RTDOSE: ${vol.name}  (${vol.nx} x ${vol.ny} x ${vol.nz}, ${vol.dx} x ${vol.dy} x ${fix(Math.abs(vol.dz), 3)} mm, max ${fix(vol.max, 3)} Gy)`);
+  L.push(`Plane: ${r.n} = ${fix(r.nval, 2)} mm (${r.n === 'y' ? 'coronal' : r.n === 'z' ? 'axial' : 'sagittal'})`);
+  L.push(`Film centre: ${r.ua} = ${fix(r.cu, 2)} mm, ${r.va} = ${fix(r.cv, 2)} mm   (film shifted ${fix(P.shX, 2)} mm right, ${fix(P.shY, 2)} mm down in the film image; plane shift ${fix(P.shU, 2)}, ${fix(P.shV, 2)} mm)`);
+  L.push(`Film orientation: rotate ${P.rot} deg clockwise, flip ${r.flipTxt}`);
+  L.push(`Analysis grid: ${r.ow} x ${r.oh} px at ${r.s.toFixed(4)} mm (film binned x${r.bf})`);
+  L.push('', '[Normalization]', `Mode: ${modeTxt}`);
+  if (P.mode !== 'none') L.push(`Film normalization dose: ${fix(S.nf, 4)} Gy   RTDOSE normalization dose: ${fix(S.nr, 4)} Gy   (both set to 100 %)`);
+  L.push(`Threshold: pixels with RTDOSE below ${P.thr} % of ${P.mode === 'none' ? 'the RTDOSE maximum in the film area (' + fix(S.rMax, 3) + ' Gy)' : 'the normalization'} are ignored`);
+  L.push(`Pixels compared: ${S.ni} of ${S.nv} overlapping (${fix(S.area, 2)} cm2)`);
+  L.push('', `[Global dose discrepancy: film - RTDOSE, in ${u}]`);
+  const d = x => fix(x, 3);
+  L.push(`Mean difference:      ${d(S.mean)}`, `SD of difference:     ${d(S.sd)}`, `Mean absolute diff:   ${d(S.mae)}`, `RMS difference:       ${d(S.rms)}`, `Min / Max:            ${d(S.min)} / ${d(S.max)}`, `5th / 95th pctile:    ${d(S.p5)} / ${d(S.p95)}`);
+  L.push(`Mean dose, film / RTDOSE:  ${d(S.meanF)} / ${d(S.meanR)}   (ratio ${fix(S.ratio, 4)})`);
+  L.push(`Maximum dose, film / RTDOSE: ${d(S.fMax)} / ${d(S.rMax)} Gy   (ratio ${fix(S.fMax / S.rMax, 4)})`);
+  L.push(`Pixels within 1 / 2 / 3 / 5 % of ${P.mode === 'none' ? 'RTDOSE max' : 'normalization'}:  ${fix(S.w1, 1)} / ${fix(S.w2, 1)} / ${fix(S.w3, 1)} / ${fix(S.w5, 1)} %`);
+  if (r.gs) { const G = r.gs; L.push('', `[Gamma ${P.gPct} % / ${P.gDta} mm, ${P.gType}, reference = ${P.gRef === 'film' ? 'film' : 'RTDOSE'}]`, `Pass rate (gamma <= 1): ${fix(G.pass, 2)} %  (${G.n} pixels)`, `Mean gamma: ${fix(G.mean, 3)}   95th percentile: ${fix(G.p95, 3)}   Max (capped at 2): ${fix(G.max, 2)}`, `Pixels with no match within 2 x DTA (gamma set to 2): ${G.capped}`, `Dose criterion: ${P.gType === 'global' ? P.gPct + ' % of ' + (P.mode === 'none' ? fix(S.Dn, 3) + ' Gy' : 'the normalization dose') : P.gPct + ' % of the local reference dose'}`); }
+  if (forExport) { const pd = profData(); L.push('', `[Profile: ${cmp.prof.dir === 'h' ? 'row' : 'column'} ${cmp.prof.i}]`, `pos_mm\tfilm_${S.units}\trtdose_${S.units}\tdiff\tgamma\tincluded`); for (const p of pd) L.push([fix(p.pos, 3), d(p.film), d(p.ref), d(p.film - p.ref), isFinite(p.gam) ? fix(p.gam, 3) : '', p.inc ? 1 : 0].join('\t')); }
+  return L.join('\n');
+}
+$('#cmpExport').onclick = () => {
+  const r = cmp.res; if (!r) return; let txt = buildReport(true);
+  if ($('#exPix').checked) { const L = ['', '[Pixels]', `row\tcol\t${r.ua}_mm\t${r.va}_mm\tfilm\trtdose\tdiff\tgamma`]; for (let j = 0; j < r.oh; j++) for (let i = 0; i < r.ow; i++) { const k = j * r.ow + i; if (!r.inc[k]) continue; L.push([j, i, fix(r.U[k], 2), fix(r.V[k], 2), fix(r.A[k], 4), fix(r.B[k], 4), fix(r.diff[k], 4), r.gam ? fix(r.gam[k], 3) : ''].join('\t')); } txt += '\n' + L.join('\n'); }
+  const base = (state.dose.scan ? state.dose.scan.name.replace(/\.[^.]+$/, '') : 'film');
+  saveFile(base + '_vs_RTDOSE_comparison.txt', txt + '\n');
+};
+$('#cmpRun').onclick = runCompare;
+
+/* ------------------------------------------------------------------ compare: auto-align */
+async function autoAlign() {
+  const vol = cmp.vol, m = state.dose.map; if (!vol || !m || cmp.busy) return; cmp.busy = true; updateCmpButtons(); const prog = $('#cmpProg'), bar = prog.firstElementChild; prog.hidden = false; $('#cmpRunMsg').textContent = 'Aligning…'; await tick();
+  try {
+    const n = cmp.normal, [ua, va] = planeAxes(n), vs = planeVSign(n), ext = volExt(vol), U0 = ext[ua][0], U1 = ext[ua][1], V0 = ext[va][0], V1 = ext[va][1], h = 1;
+    const nu = Math.floor((U1 - U0) / h) + 1, nvv = Math.floor((V1 - V0) / h) + 1, Rg = new Float32Array(nu * nvv);
+    for (let j = 0; j < nvv; j++) for (let i = 0; i < nu; i++) Rg[j * nu + i] = sampleAt(vol, n, cmp.pos[n], U0 + i * h, V0 + j * h);
+    const rs = (u, v) => { const fx = (u - U0) / h, fy = (v - V0) / h; if (fx < 0 || fy < 0 || fx > nu - 1.001 || fy > nvv - 1.001) return NaN; const i = Math.floor(fx), j = Math.floor(fy), ax = fx - i, ay = fy - j, b = j * nu + i; return (Rg[b] * (1 - ax) + Rg[b + 1] * ax) * (1 - ay) + (Rg[b + nu] * (1 - ax) + Rg[b + nu + 1] * ax) * ay; };
+    const P = readCmpParams(), mk = (sMm, maxPts) => {   // film points with offsets, orientation applied
+      const bf = Math.max(1, Math.round(sMm / m.mm)), F = binFilm(m, bf); let fmax = 0; for (const x of F.data) if (x > fmax) fmax = x; return { F, fmax: fmax || 1 };
+    };
+    const coarse = mk(2, 4000), fine = mk(1, 12000);
+    const pointsFor = (c, flip, rot) => { const { F, fmax } = c, pts = [], step = Math.max(1, Math.floor(Math.sqrt(F.ow * F.oh / 3500))); for (let j = 0; j < F.oh; j += step) for (let i = 0; i < F.ow; i += step) { const [ao, bo] = orient((i + 0.5 - F.ow / 2) * F.s, (j + 0.5 - F.oh / 2) * F.s, flip, rot); pts.push([ao, vs * bo, F.data[j * F.ow + i]]); } return pts; };
+    // score = 1 - SSE/variance of the film after a gain fit limited to +-15 % (absolute doses, so a staircase shifted by one step cannot match)
+    const gLo = vol.units === 'RELATIVE' ? 0.05 : 0.85, gHi = vol.units === 'RELATIVE' ? 20 : 1.15;
+    const fitScore = (pts, samp) => { let n1 = 0, sf = 0, sff = 0, sfr = 0, srr = 0; for (const p of pts) { const r = samp(p); if (!isFinite(r)) continue; n1++; sf += p[2]; sff += p[2] * p[2]; sfr += p[2] * r; srr += r * r; } if (n1 < 0.8 * pts.length || srr <= 0) return -2; const g = clamp(sfr / srr, gLo, gHi), vf = sff - sf * sf / n1; return vf > 1e-12 ? 1 - (sff - 2 * g * sfr + g * g * srr) / vf : -2; };
+    const ncc = (pts, cu, cv) => fitScore(pts, p => rs(cu + p[0], cv + p[1]));
+    const oris = $('#alignOr').checked ? [] : [[P.flip, P.rot]]; if ($('#alignOr').checked) for (const fl of ['', 'h', 'v', 'hv']) for (const rot of [0, 90, 180, 270]) oris.push([fl, rot]);
+    // 1) start from the global dose maximum of each image: centroid of the plateau within 5 % of the smoothed maximum
+    const maxCentroid = (get, w, hh, ps) => {
+      const r = Math.max(1, Math.round(2.5 / ps)), ii = new Float64Array((w + 1) * (hh + 1));
+      for (let j = 0; j < hh; j++) { let row = 0; for (let i = 0; i < w; i++) { const v = get(i, j); row += isFinite(v) ? v : 0; ii[(j + 1) * (w + 1) + i + 1] = ii[j * (w + 1) + i + 1] + row; } }
+      const sm = new Float32Array(w * hh); let mx = -1, mi = 0, mj = 0;
+      for (let j = 0; j < hh; j++) for (let i = 0; i < w; i++) { const x0 = Math.max(0, i - r), x1 = Math.min(w, i + r + 1), y0 = Math.max(0, j - r), y1 = Math.min(hh, j + r + 1), c = (x1 - x0) * (y1 - y0); const v = (ii[y1 * (w + 1) + x1] - ii[y0 * (w + 1) + x1] - ii[y1 * (w + 1) + x0] + ii[y0 * (w + 1) + x0]) / c; sm[j * w + i] = v; if (v > mx) { mx = v; mi = i; mj = j; } }
+      let sx = 0, sy = 0, sw = 0, lim = 30 / ps; for (let j = 0; j < hh; j++) for (let i = 0; i < w; i++) if (sm[j * w + i] >= 0.95 * mx && (i - mi) ** 2 + (j - mj) ** 2 <= lim * lim) { sx += i; sy += j; sw++; }
+      return { i: sx / sw, j: sy / sw, v: mx };
+    };
+    const rmx = maxCentroid((i, j) => Rg[j * nu + i], nu, nvv, h), RU = U0 + rmx.i * h, RV = V0 + rmx.j * h;
+    const Fc = coarse.F, fmx = maxCentroid((i, j) => Fc.data[j * Fc.ow + i], Fc.ow, Fc.oh, Fc.s), fa = (fmx.i + 0.5 - Fc.ow / 2) * Fc.s, fb = (fmx.j + 0.5 - Fc.oh / 2) * Fc.s;
+    let best = { r: -2 }, done = 0;
+    for (const [fl, rot] of oris) {
+      const pts = pointsFor(coarse, fl, rot), [ao, bo] = orient(fa, fb, fl, rot), cu0 = RU - ao, cv0 = RV - vs * bo;
+      for (let du = -12; du <= 12.001; du += 1) for (let dv = -12; dv <= 12.001; dv += 1) { const r = ncc(pts, cu0 + du, cv0 + dv); if (r > best.r) best = { r, u: cu0 + du, v: cv0 + dv, fl, rot }; }
+      await tick();
+    }
+    $('#cmpRunMsg').textContent = best.r >= 0.97 ? 'Max-to-max start found, refining…' : 'Dose maxima did not match; searching the whole plane…';
+    const stepC = oris.length > 1 ? 4 : 2, total = oris.length * Math.ceil((U1 - U0) / stepC);
+    if (best.r < 0.97) for (const [fl, rot] of oris) {
+      const pts = pointsFor(coarse, fl, rot);
+      for (let u = U0; u <= U1; u += stepC) { for (let v = V0; v <= V1; v += stepC) { const r = ncc(pts, u, v); if (r > best.r) best = { r, u, v, fl, rot }; } if ((++done & 3) === 0) { bar.style.width = (100 * done / total) + '%'; await tick(); } }
+    }
+    if (best.r < -1) throw new Error('Could not find an overlap. Check the plane position.');
+    const pf = pointsFor(fine, best.fl, best.rot); let b2 = { r: -2 };
+    for (let du = -4; du <= 4.001; du += 0.5) for (let dv = -4; dv <= 4.001; dv += 0.5) { const r = ncc(pf, best.u + du, best.v + dv); if (r > b2.r) b2 = { r, u: best.u + du, v: best.v + dv }; }
+    { // last pass: exact (trilinear) dose samples, 0.1 mm steps
+      const pe = pointsFor(coarse, best.fl, best.rot), nccE = (cu, cv) => fitScore(pe, p => sampleAt(vol, n, cmp.pos[n], cu + p[0], cv + p[1]));
+      let b3 = { r: -2 }; for (let du = -0.8; du <= 0.801; du += 0.1) for (let dv = -0.8; dv <= 0.801; dv += 0.1) { const r = nccE(b2.u + du, b2.v + dv); if (r > b3.r) b3 = { r, u: b2.u + du, v: b2.v + dv }; }
+      if (b3.r > b2.r) b2 = b3;
+    }
+    setPos(ua, b2.u, true); setPos(va, b2.v, true); $('#shX').value = 0; $('#shY').value = 0; $('#orFlip').value = best.fl; $('#orRot').value = best.rot; renderViews();
+    toast(`Aligned: ${ua} = ${fix(cmp.pos[ua], 1)}, ${va} = ${fix(cmp.pos[va], 1)} mm, fit ${fix(b2.r, 3)}${oris.length > 1 ? `, rotation ${best.rot}°, flip ${best.fl || 'none'}` : ''}. Press Compare.`);
+    $('#cmpRunMsg').textContent = `Aligned (fit R² ${fix(b2.r, 3)})`;
+  } catch (e) { toast(e.message || 'Auto-align failed.'); $('#cmpRunMsg').textContent = ''; }
+  prog.hidden = true; bar.style.width = '0'; cmp.busy = false; updateCmpButtons();
+}
+$('#cmpAlign').onclick = async () => { rememberShift(); await autoAlign(); cmp.again = false; liveSoon(); };
+
+
+/* ------------------------------------------------------------------ compare: optimize shift */
+function rememberShift() { cmp.prevShift = { x: $('#shX').value, y: $('#shY').value, pos: { ...cmp.pos }, rot: $('#orRot').value, flip: $('#orFlip').value }; updateCmpButtons(); }
+$('#cmpUndo').onclick = () => { const p = cmp.prevShift; if (!p) return; $('#shX').value = p.x; $('#shY').value = p.y; $('#orRot').value = p.rot; $('#orFlip').value = p.flip; for (const k of ['x', 'y', 'z']) if (p.pos[k] !== cmp.pos[k]) setPos(k, p.pos[k], true); cmp.prevShift = null; renderViews(); updateFilmInfo(); updateCmpButtons(); $('#optMsg').textContent = 'Shift restored.'; liveSoon(); };
+function makeShiftCost(P, F, metric) {
+  const vol = cmp.vol, n = cmp.normal, [ua, va] = planeAxes(n), vs = planeVSign(n), nval = cmp.pos[n], ow = F.ow, oh = F.oh, s = F.s, N = ow * oh;
+  const AO = new Float32Array(N), BO = new Float32Array(N), R = new Float32Array(N), film = F.data;
+  for (let j = 0; j < oh; j++) for (let i = 0; i < ow; i++) { const [a, b] = orient((i + 0.5 - ow / 2) * s, (j + 0.5 - oh / 2) * s, P.flip, P.rot), k = j * ow + i; AO[k] = a; BO[k] = vs * b; }
+  let fMax = 0; for (let k = 0; k < N; k++) if (isFinite(film[k]) && film[k] > fMax) fMax = film[k];
+  return (shx, shy) => {
+    const [a0, b0] = orient(shx, shy, P.flip, P.rot), cu = cmp.pos[ua] + a0, cv = cmp.pos[va] + vs * b0 * 1;   // same convention as planeShift()
+    let rMax = 0;
+    for (let k = 0; k < N; k++) { const r = sampleAt(vol, n, nval, cu + AO[k], cv + BO[k]); R[k] = r; if (r > rMax) rMax = r; }
+    if (!(rMax > 0)) return { cost: Infinity, ni: 0 };
+    let nf = 1, nr = 1; if (P.mode !== 'none') { nf = fMax; nr = rMax; }
+    if (P.mode === 'high') { let sf = 0, cf = 0, sr = 0, cr = 0; for (let k = 0; k < N; k++) { if (film[k] >= P.high / 100 * fMax) { sf += film[k]; cf++; } if (R[k] >= P.high / 100 * rMax) { sr += R[k]; cr++; } } if (cf && cr) { nf = sf / cf; nr = sr / cr; } }
+    const gf = P.mode === 'none' ? 1 : 100 / nf, gr = P.mode === 'none' ? 1 : 100 / nr, Dn = P.mode === 'none' ? fMax : 100, thr = P.thr / 100 * Dn;
+    let sum = 0, ni = 0;   // fixed film pixel set (film above threshold); RTDOSE outside the grid counts as 0
+    for (let k = 0; k < N; k++) { const f = film[k] * gf; if (!isFinite(film[k]) || f < thr) continue; const r = isFinite(R[k]) ? R[k] * gr : 0, d = f - r; sum += metric === 'l2' ? d * d : Math.abs(d); ni++; }
+    return { cost: ni ? sum : Infinity, ni, mean: ni ? sum / ni : Infinity };
+  };
+}
+async function optimizeShift() {
+  const vol = cmp.vol, m = state.dose.map; if (!vol || !m || cmp.busy) return; cmp.busy = true; updateCmpButtons();
+  const prog = $('#cmpProg'), bar = prog.firstElementChild; prog.hidden = false; $('#cmpRunMsg').textContent = 'Optimizing…'; $('#optMsg').textContent = ''; await tick();
+  try {
+    const P = readCmpParams(), metric = $('#optMetric').value, x0 = parseFloat($('#shX').value) || 0, y0 = parseFloat($('#shY').value) || 0;
+    const bfC = Math.max(1, Math.round(1.5 / m.mm)), bfF = Math.max(1, Math.round(P.pix / m.mm)), costC = makeShiftCost(P, binFilm(m, bfC), metric), costF = makeShiftCost(P, binFilm(m, bfF), metric);
+    const f0 = costF(x0, y0); if (!isFinite(f0.cost)) throw new Error('The film does not overlap the dose. Use Auto-align first.');
+    let best = { x: x0, y: y0, c: costC(x0, y0).cost }, evals = 0;
+    // coarse grid +-10 mm, 2 mm steps, on the 1.5 mm film
+    for (let dy = -10; dy <= 10.001; dy += 2) { for (let dx = -10; dx <= 10.001; dx += 2) { const c = costC(x0 + dx, y0 + dy).cost; evals++; if (c < best.c) best = { x: x0 + dx, y: y0 + dy, c }; } bar.style.width = (30 * (dy + 10) / 20) + '%'; await tick(); }
+    // pattern search on the analysis-pixel film, halving the step from 2 mm to 0.05 mm
+    let cur = { x: best.x, y: best.y, c: costF(best.x, best.y).cost }, st = 2, it = 0;
+    while (st >= 0.05 && it < 400) {
+      let moved = false;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { const c = costF(cur.x + dx * st, cur.y + dy * st).cost; it++; if (c < cur.c - 1e-9) { cur = { x: cur.x + dx * st, y: cur.y + dy * st, c }; moved = true; break; } }
+      if (!moved) st /= 2; if ((it & 7) === 0) { bar.style.width = (30 + 70 * Math.min(1, it / 120)) + '%'; await tick(); }
+    }
+    const f1 = costF(cur.x, cur.y); rememberShift();
+    const rx = Math.round(cur.x * 100) / 100, ry = Math.round(cur.y * 100) / 100; $('#shX').value = rx; $('#shY').value = ry; updateFilmInfo();
+    const unit = P.mode === 'none' ? 'Gy' : '%', q = o => metric === 'l2' ? Math.sqrt(o.cost / o.ni) : o.mean, lab = metric === 'l2' ? 'RMS difference' : 'mean |difference|';
+    $('#optMsg').textContent = `Shift moved from (${fix(x0, 2)}, ${fix(y0, 2)}) to (${fix(rx, 2)}, ${fix(ry, 2)}) mm. ${lab} ${fix(q(f0), 2)} → ${fix(q(f1), 2)} ${unit} over ${f1.ni} film pixels (${fix(100 * (1 - q(f1) / q(f0)), 0)} % lower).` + (Math.hypot(rx - x0, ry - y0) > 9.5 ? ' The result is far from the start; check it with Auto-align.' : '');
+    $('#cmpRunMsg').textContent = 'Optimized';
+  } catch (e) { toast(e.message || 'Optimization failed.'); $('#cmpRunMsg').textContent = ''; }
+  prog.hidden = true; bar.style.width = '0'; cmp.busy = false; updateCmpButtons(); liveSoon();
+}
+$('#cmpOpt').onclick = optimizeShift;
+
+/* ------------------------------------------------------------------ compare: live shift arrows */
+function liveSoon() { if (!cmp.vol || !state.dose.map) return; if (cmp.liveQ) return; cmp.liveQ = requestAnimationFrame(() => { cmp.liveQ = 0; runCompare(true); }); }
+function nudge(dx, dy) {
+  const f = (id, d) => { const el = $('#' + id); el.value = String(Math.round(((parseFloat(el.value) || 0) + d) * 1000) / 1000); };
+  if (dx) f('shX', dx); if (dy) f('shY', dy); updateFilmInfo(); liveSoon();
+}
+for (const [id, dx, dy] of [['shRight', 1, 0], ['shLeft', -1, 0], ['shDown', 0, 1], ['shUp', 0, -1]]) {
+  const b = $('#' + id); let t1 = 0, t2 = 0; const stop = () => { clearTimeout(t1); clearInterval(t2); };
+  const step = () => { const st = parseFloat($('#shStep').value) || 0.5; nudge(dx * st, dy * st); };
+  b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); step(); t1 = setTimeout(() => { t2 = setInterval(step, 70); }, 380); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, stop);
+  b.addEventListener('click', e => { if (e.detail === 0) step(); });   // keyboard
+}
+$('#shZero').onclick = () => { $('#shX').value = 0; $('#shY').value = 0; updateFilmInfo(); liveSoon(); };
+for (const id of ['shX', 'shY']) $('#' + id).addEventListener('input', () => { updateFilmInfo(); liveSoon(); });
+for (const id of ['orRot', 'orFlip']) $('#' + id).addEventListener('change', () => { updateFilmInfo(); if (cmp.res) liveSoon(); });
+
+/* tabs */
+function showTab(t) {
+  $('#tab-cal').hidden = t !== 'cal'; $('#tab-dose').hidden = t !== 'dose'; $('#tab-cmp').hidden = t !== 'cmp';
+  $('#tabbtn-cal').setAttribute('aria-selected', t === 'cal'); $('#tabbtn-dose').setAttribute('aria-selected', t === 'dose'); $('#tabbtn-cmp').setAttribute('aria-selected', t === 'cmp');
+  requestAnimationFrame(() => { if (t === 'cmp') { updateFilmInfo(); updateCmpButtons(); renderViews(); return; } (t === 'cal' ? calView : doseView).resize(); if (t === 'cal') renderFit(); });
+}
+$('#tabbtn-cal').onclick = () => showTab('cal'); $('#tabbtn-dose').onclick = () => showTab('dose'); $('#tabbtn-cmp').onclick = () => showTab('cmp');
+
+/* ------------------------------------------------------------------ synthetic example */
+const EX = { R: [0.5, -1.5, 0.03], G: [0.55, -1.6, 0.02] };
+function rnd() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function exPixel(dose, o) { // inverse of the model to build plausible film colours
+  const base = 0.27 + (o || 0);
+  const xr = EX.R[0] / (dose - EX.R[1]) - EX.R[2], xg = EX.G[0] / (dose - EX.G[1]) - EX.G[2];
+  return [(base + xr) * 255, (base + xg) * 255, base * 255];
+}
+function makeExample() {
+  const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  // calibration scan: 4 x 3 film pieces
+  const doses = [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], W = 1180, H = 820, cc = mk(W, H), cx = cc.getContext('2d');
+  cx.fillStyle = '#fdfdfd'; cx.fillRect(0, 0, W, H); const rects = [];
+  doses.forEach((d, i) => {
+    const gx = i % 4, gy = Math.floor(i / 4), x = 60 + gx * 280, y = 50 + gy * 250, o = rnd() * 0.003;
+    const id = cx.createImageData(230, 210), px = id.data, base = exPixel(d, o);
+    for (let k = 0; k < 230 * 210; k++) { px[k * 4] = base[0] + rnd() * 1.4; px[k * 4 + 1] = base[1] + rnd() * 1.4; px[k * 4 + 2] = base[2] + rnd() * 1.4; px[k * 4 + 3] = 255; }
+    cx.putImageData(id, x, y); rects.push({ x: x + 40, y: y + 40, d });
+  });
+  // film scan: 12 x 9 cm piece at 300 dpi with an 8 x 6 cm field, 6 Gy, plus a 2 Gy island
+  const FW = 1240, FH = 900, fc = mk(FW, FH), fx = fc.getContext('2d'), id = fx.createImageData(FW, FH), px = id.data;
+  const edge = (v, a, b, pen) => 0.5 * (Math.tanh((v - a) / pen) - Math.tanh((v - b) / pen));
+  for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) {
+    const inFilm = x > 80 && x < FW - 80 && y > 80 && y < FH - 80, k = (y * FW + x) * 4;
+    if (!inFilm) { px[k] = px[k + 1] = px[k + 2] = 253 + rnd() * 0.6; px[k + 3] = 255; continue; }
+    let dose = 0.15 + 5.85 * edge(x, 260, 980, 14) * edge(y, 220, 700, 14) + 2.0 * Math.exp(-(((x - 620) ** 2 + (y - 460) ** 2) / (2 * 60 * 60)));
+    const c = exPixel(dose, 0);
+    px[k] = c[0] + rnd() * 0.7; px[k + 1] = c[1] + rnd() * 0.7; px[k + 2] = c[2] + rnd() * 0.7; px[k + 3] = 255;
+  }
+  fx.putImageData(id, 0, 0);
+  return { cal: canvasScan('example_calibration_scan (synthetic)', cc, 8), film: canvasScan('example_film_scan (synthetic)', fc, 8), rects };
+}
+function loadExample() {
+  const ex = makeExample(); const cal = state.cal;
+  cal.scan = ex.cal; cal.points = []; cal.nextId = 1; cal.example = true; cal.renorm = 'blue'; setRenormUI(); setCalImage(ex.cal);
+  for (const r of ex.rects) addRoi(r.x, r.y, 150, 130, r.d);
+  const d = state.dose; d.scan = ex.film; d.orig = ex.film; d.angle = 0; d.film = null; $('#autoFit').disabled = false; $('#autoReset').disabled = false; d.example = true; d.crop = { x: 100, y: 100, w: 1040, h: 700 }; d.map = null;
+  $('#doseEmpty').hidden = true; $('#doseInfo').hidden = false; $('#vDose').disabled = true; setDoseView('scan'); doseView.setImage(ex.film.display);
+  updatePxInfo(); updateBanner(); runFit();
+}
+function updateBanner() { $('#exBanner').hidden = !(state.cal.example || state.dose.example); }
+$('#exClear').onclick = () => {
+  const cal = state.cal, d = state.dose;
+  if (cal.example) { cal.scan = null; cal.points = []; cal.fit = null; cal.example = false; cal.source = ''; $('#calEmpty').hidden = false; $('#calInfo').hidden = true; calView.setImage(null); renderPoints(); renderFit(); }
+  if (d.example) { d.scan = null; d.orig = null; d.crop = null; $('#autoFit').disabled = true; $('#autoReset').disabled = true; d.map = null; d.example = false; $('#doseEmpty').hidden = false; $('#doseInfo').hidden = true; doseView.setImage(null); $('#cbarWrap').hidden = true; $('#vDose').disabled = true; $('#convMsg').textContent = ''; $('#exInfo').textContent = 'Convert a film first.'; }
+  updateBanner(); updateDoseCalUI(); updateExportBtns(); updatePxInfo();
+};
+
+/* theme changes: redraw canvases that read tokens */
+function themeRedraw() { calView.draw(); doseView.draw(); try { if (cmp.vol) renderViews(); if (cmp.res) drawResults(); } catch (e) { } document.querySelectorAll('#fits canvas').forEach(cv => drawPlot(cv, cv.dataset.ch)); }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => setTimeout(themeRedraw, 50));
+new MutationObserver(() => setTimeout(themeRedraw, 50)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+window.addEventListener('resize', () => document.querySelectorAll('#fits canvas').forEach(cv => drawPlot(cv, cv.dataset.ch)));
+
+/* boot */
+setRenormUI(); updateWeightUI(); updatePxInfo(); drawColorbar();
+requestAnimationFrame(() => { calView.resize(); doseView.resize(); loadExample(); });
+window.__app = { optimizeShift, cmp, volAt, parseRtDose, runCompare, autoAlign, openRtDose, state, fitCurve, buildTiff, buildDicom, loadExample, convert, doseView, setAngle };
+</script>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Film Dosimetry Workbench</title>
+<meta name="description" content="Browser-based radiochromic film calibration, dose maps and RTDOSE comparison. Runs locally.">
+<style>
+:root{--bg:#e9ece7;--panel:#f6f7f3;--ink:#1b2320;--muted:#5a665f;--line:#cfd5cc;--accent:#2b6a4d;--accent-ink:#fff;--soft:#d8e8de;
+ --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#101412;--panel:#181d1a;--ink:#e4eae6;--muted:#97a49d;--line:#2c3531;--accent:#62bf92;--accent-ink:#0b1a12;--soft:#1f3a2c;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#101412;--panel:#181d1a;--ink:#e4eae6;--muted:#97a49d;--line:#2c3531;--accent:#62bf92;--accent-ink:#0b1a12;--soft:#1f3a2c;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--font);padding:0 max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+main{max-width:760px;margin:0 auto;padding-top:clamp(28px,8vh,72px);display:flex;flex-direction:column;gap:22px}
+.kicker{font:12px var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+h1{margin:4px 0 8px;font-size:clamp(26px,5vw,36px);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+p{margin:0}.lead{color:var(--muted);max-width:60ch}
+.launch{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.go{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--accent-ink);text-decoration:none;font-weight:600;font-size:16px;padding:12px 22px;border-radius:9px;border:1px solid var(--accent)}
+.go:hover{filter:brightness(1.07)}.go:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.alt{color:var(--muted);font-size:13.5px}.alt a{color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.card b{font:500 12px var(--mono);color:var(--accent)}.card h2{margin:0;font-size:15px}.card p{color:var(--muted);font-size:13.5px}
+.note{background:var(--soft);border-radius:10px;padding:12px 14px;font-size:13.5px}
+.note b{display:block;margin-bottom:2px}
+footer{color:var(--muted);font-size:12.5px;display:flex;flex-wrap:wrap;gap:6px 16px}
+footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">VAIDER Lab</div>
+    <h1>Film Dosimetry Workbench</h1>
+    <p class="lead">Calibrate radiochromic film, convert scans to dose maps, and compare them with a DICOM RTDOSE from the planning system. Everything runs in your browser; scans never leave your computer.</p>
+  </header>
+
+  <div class="launch">
+    <a class="go" id="launch" href="film-dosimetry.html">Launch the application <span aria-hidden="true">→</span></a>
+    <span class="alt">Opens in this tab. <a href="film-dosimetry.html" target="_blank" rel="noopener">Open in a new tab</a> · <a href="HOW_TO.md">Quick guide</a></span>
+  </div>
+
+  <section class="grid" aria-label="Workflow">
+    <div class="card"><b>1</b><h2>Calibrate</h2><p>Click film pieces of known dose, fit the curve with blue-channel renormalization, and save the calibration (.json).</p></div>
+    <div class="card"><b>2</b><h2>Dose map and export</h2><p>Straighten and crop a scan, convert it to dose, and export a 32-bit TIFF (Gy) or a DICOM RTDOSE.</p></div>
+    <div class="card"><b>3</b><h2>Compare</h2><p>Overlay the film on an RTDOSE plane, align it with the arrows, Auto-align or Optimize shift, and read profiles, difference and gamma.</p></div>
+  </section>
+
+  <div class="note"><b>For reliable doses</b>Scan the calibration strip, the 0 Gy background strip and the sample films together in one scan, with scanner colour corrections off.</div>
+
+  <footer>
+    <span>Research use only. Not tied to a treatment plan.</span>
+    <span>TIFF scans are read with UTIF.js from a CDN, so the first TIFF load needs an internet connection.</span>
+    <a href="README.md">README</a>
+  </footer>
+</main>
+</body>
+</html>
