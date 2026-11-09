@@ -141,6 +141,11 @@ label.f.hcol{color:var(--hc)}label.f.vcol{color:var(--vc)}
 .profside{display:flex;flex-direction:column;gap:8px}
 .profside .shiftrow{gap:10px}.profside .shiftnum{grid-template-columns:minmax(0,1fr);flex:1 1 100%}
 .optrow{gap:8px;flex-wrap:wrap}
+.wtab{border-collapse:separate;border-spacing:3px;font:12px var(--mono);font-variant-numeric:tabular-nums;width:100%;table-layout:fixed}
+.wtab th{position:static;background:transparent;text-align:center;color:var(--muted);font:500 11.5px var(--mono);border:0;padding:2px}
+.wtab td{text-align:center;border:1px solid var(--line);border-radius:6px;padding:6px 2px;color:var(--ink);border-bottom:1px solid var(--line)}
+.wtab td.off{opacity:.45}
+.roibox{display:flex;flex-direction:column;gap:8px}
 .pw{position:relative}.pw canvas.ovl{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;background:transparent}
 .rgrid canvas,.cmpmap{cursor:crosshair;touch-action:none}
 #cmpProf{width:100%;height:230px;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:block}
@@ -408,7 +413,7 @@ pre.report{font:12px/1.5 var(--mono);background:var(--bg);color:var(--ink);borde
           <div class="profrow">
             <div class="profmain">
               <canvas id="cmpProf" width="900" height="230" aria-label="Profile comparison"></canvas>
-              <p class="hint">The coloured line with an arrow on each map above is where the profile is taken; the arrow points the way the profile's horizontal axis increases. Click or drag on any map to move it, or use the slider.</p>
+              <p class="hint">The coloured line with an arrow on each map above is where the profile is taken; the arrow points the way the profile's horizontal axis increases. Click or drag on any map to move it, or use the slider. (With an ROI mode on, dragging on a map draws or moves the ROI instead.)</p>
             </div>
             <div class="profside">
           <div class="shiftbox sidebox">
@@ -441,6 +446,13 @@ pre.report{font:12px/1.5 var(--mono);background:var(--bg);color:var(--ink);borde
             </div>
           </div>
         </div>
+        <div class="panel" id="wellPanel" hidden>
+          <div class="row"><h2 class="grow">Per-well results</h2>
+            <label class="f inline">Show <select id="wellMetric"><option value="diff" selected>film − RTDOSE</option><option value="pct">film − RTDOSE, % of RTDOSE</option><option value="ratio">film / RTDOSE</option><option value="film">film mean</option><option value="ref">RTDOSE mean</option></select></label>
+            <button class="btn sm" id="wellCsv" disabled>Wells (.csv)</button></div>
+          <table class="wtab" id="wellTab" aria-label="Per-well results"></table>
+          <p class="hint" id="wellNote"></p>
+        </div>
       </div>
 
       <div class="col">
@@ -452,6 +464,49 @@ pre.report{font:12px/1.5 var(--mono);background:var(--bg);color:var(--ink);borde
             <label class="f">Flip<select id="orFlip"><option value="">none</option><option value="h">left–right</option><option value="v">up–down</option><option value="hv">both</option></select></label>
           </div>
           <p class="hint">The arrows, Auto-align and Optimize controls are beside the profile in the Results panel.</p>
+        </div>
+
+        <div class="panel" id="roiPanel">
+          <h2>ROI to analyze</h2>
+          <label class="f">ROI to analyze
+            <select id="roiMode">
+              <option value="all" selected>All (entire image)</option>
+              <option value="rect">Select ROI</option>
+              <option value="well48">Inside Well-48</option>
+            </select></label>
+          <div class="roibox" id="roiRectBox" hidden>
+            <div class="row">
+              <label class="f inline">Shape <select id="roiShape"><option value="rect" selected>Rectangle</option><option value="ellipse">Ellipse</option></select></label>
+              <button class="btn sm" id="roiClear">Clear ROI</button>
+            </div>
+            <div class="grid2">
+              <label class="f">Left x (mm)<input type="number" id="roiX0" step="0.5"></label>
+              <label class="f">Right x (mm)<input type="number" id="roiX1" step="0.5"></label>
+              <label class="f">Top y (mm)<input type="number" id="roiY0" step="0.5"></label>
+              <label class="f">Bottom y (mm)<input type="number" id="roiY1" step="0.5"></label>
+            </div>
+            <p class="hint">Drag on any of the four maps to draw the ROI (while this mode is on, dragging draws the ROI; use the slider to move the profile). Coordinates are mm from the film centre, in the film image.</p>
+          </div>
+          <div class="roibox" id="roiWellBox" hidden>
+            <div class="grid2">
+              <label class="f">Plate centre x (mm)<input type="number" id="wpCx" step="0.5" value="0"></label>
+              <label class="f">Plate centre y (mm)<input type="number" id="wpCy" step="0.5" value="0"></label>
+              <label class="f">Rotation (° clockwise)<input type="number" id="wpRot" step="0.1" value="0"></label>
+              <label class="f">Inset from well wall (mm)<input type="number" id="wpInset" step="0.25" min="0" value="1"></label>
+            </div>
+            <details><summary>Plate geometry (Corning 48-well)</summary>
+              <div class="grid2">
+                <label class="f">Columns (along x)<input type="number" id="wpCols" min="1" max="24" step="1" value="8"></label>
+                <label class="f">Rows (along y)<input type="number" id="wpRows" min="1" max="16" step="1" value="6"></label>
+                <label class="f">Pitch x (mm)<input type="number" id="wpPx" step="0.01" value="13.08"></label>
+                <label class="f">Pitch y (mm)<input type="number" id="wpPy" step="0.01" value="13.08"></label>
+                <label class="f">Well bottom diameter (mm)<input type="number" id="wpD" step="0.01" value="11.05"></label>
+              </div>
+            </details>
+            <div class="row"><button class="btn sm" id="wpCentre">Centre plate on film</button></div>
+            <p class="hint">Wells A–F run top to bottom and 1–8 left to right in the film image. The analysed area of each well is a circle 1 mm inside the well wall (edit the inset above). Drag on any map to move the plate, or type the centre. Geometry defaults are the lab's RADAR plate values (pitch 13.08 mm, bottom diameter 11.05 mm). Set the threshold to 0 to include unirradiated wells in the global statistics; the per-well table ignores the threshold.</p>
+          </div>
+          <div class="status" id="roiInfo"></div>
         </div>
 
         <div class="panel">
@@ -1727,7 +1782,7 @@ function readCmpParams() {
   return { shX: parseFloat($('#shX').value) || 0, shY: parseFloat($('#shY').value) || 0, shU: ps[0], shV: ps[1], rot: parseInt($('#orRot').value) || 0, flip: $('#orFlip').value,
     mode: $('#nmMode').value, high: clamp(parseFloat($('#nmHigh').value) || 90, 1, 100), rad: Math.max(0, parseFloat($('#nmRad').value) || 0), thr: Math.max(0, parseFloat($('#thrPct').value) || 0),
     pix: Math.max(0.05, parseFloat($('#anPix').value) || 0.5), gOn: $('#gmOn').checked, gPct: parseFloat($('#gmPct').value) || 3, gDta: parseFloat($('#gmDta').value) || 3,
-    gType: $('#gmType').value, gRef: $('#gmRef').value };
+    gType: $('#gmType').value, gRef: $('#gmRef').value, roi: readRoi() };
 }
 function binFilm(m, bf) {
   const ow = Math.floor(m.ow / bf), oh = Math.floor(m.oh / bf), out = new Float32Array(ow * oh), a2 = bf * bf;
@@ -1747,9 +1802,9 @@ async function runCompare(live) {
       const [ao, bo] = orient((i + 0.5 - ow / 2) * s, (j + 0.5 - oh / 2) * s, P.flip, P.rot), k = j * ow + i, u = cu + ao, v = cv + vs * bo;
       U[k] = u; V[k] = v; R[k] = sampleAt(vol, n, nval, u, v);
     }
-    const film = F.data, valid = new Uint8Array(N); let nv = 0;
-    for (let k = 0; k < N; k++) if (isFinite(film[k]) && isFinite(R[k])) { valid[k] = 1; nv++; }
-    if (nv < 50) throw new Error('The film does not overlap the dose grid in this plane. Move the plane or use Auto-align.');
+    const film = F.data, valid = new Uint8Array(N), ROI = buildRoi(P.roi, ow, oh, s); let nv = 0;
+    for (let k = 0; k < N; k++) if (isFinite(film[k]) && isFinite(R[k]) && (!ROI || ROI.mask[k])) { valid[k] = 1; nv++; }
+    if (nv < 50) throw new Error(ROI ? 'The ROI does not overlap the film and dose grid. Move the ROI or the film.' : 'The film does not overlap the dose grid in this plane. Move the plane or use Auto-align.');
     let fMax = 0, rMax = 0; for (let k = 0; k < N; k++) if (valid[k]) { if (film[k] > fMax) fMax = film[k]; if (R[k] > rMax) rMax = R[k]; }
     let nf = 1, nr = 1, ptInfo = '', units = '%';
     const meanOf = (arr, test) => { let sm = 0, c = 0; for (let k = 0; k < N; k++) if (valid[k] && test(k)) { sm += arr[k]; c++; } return c ? sm / c : NaN; };
@@ -1765,6 +1820,7 @@ async function runCompare(live) {
     if (!(nf > 0) || !(nr > 0)) throw new Error('A normalization value came out as zero. Check the placement or choose another normalization.');
     const sf = P.mode === 'none' ? 1 : 100 / nf, sr = P.mode === 'none' ? 1 : 100 / nr, Dn = P.mode === 'none' ? rMax : 100;
     for (let k = 0; k < N; k++) { A[k] = film[k] * sf; B[k] = R[k] * sr; }   // A = film, B = RTDOSE in the chosen units
+    const wells = wellStats(ROI, A, B, valid);
     const thrAbs = P.thr / 100 * Dn, inc = new Uint8Array(N); let ni = 0;
     for (let k = 0; k < N; k++) if (valid[k] && B[k] >= thrAbs) { inc[k] = 1; ni++; }
     if (ni < 20) throw new Error('Too few pixels are above the threshold. Lower the threshold or check the placement.');
@@ -1797,7 +1853,7 @@ async function runCompare(live) {
       let sg = 0, pass = 0; for (const g of gl) { sg += g; if (g <= 1) pass++; }
       gs = { pass: 100 * pass / gl.length, mean: sg / gl.length, p95: percentile(gl, 95), max: Math.max(...gl.slice(0, 200000)), capped, n: gl.length };
     }
-    cmp.res = { live, P, ow, oh, s, A, B, diff, gam, inc, valid, U, V, stats, gs, ptTxt: typeof ptTxt === 'undefined' ? '' : ptTxt, cu, cv, n, ua, va, nval, bf, flipTxt: P.flip || 'none', time: (performance.now() - t0) / 1000 };
+    cmp.res = { live, P, ow, oh, s, A, B, diff, gam, inc, valid, U, V, stats, gs, wells, roiTxt: roiSummary(), ptTxt: typeof ptTxt === 'undefined' ? '' : ptTxt, cu, cv, n, ua, va, nval, bf, flipTxt: P.flip || 'none', time: (performance.now() - t0) / 1000 };
     if (cmp.prof.i < 0) { let bk = -1, bv = -1; for (let k = 0; k < N; k++) if (inc[k] && B[k] > bv) { bv = B[k]; bk = k; } cmp.prof.i = cmp.prof.dir === 'h' ? (bk / ow) | 0 : bk % ow; }
     cmp.prof.i = clamp(cmp.prof.i, 0, (cmp.prof.dir === 'h' ? oh : ow) - 1); resetProfSlider(true);
     drawResults(); $('#cmpReport').textContent = buildReport(); $('#cmpRunMsg').textContent = live ? 'Live preview · gamma not updated, press Compare' : `Done in ${cmp.res.time.toFixed(1)} s` + (gs ? ` · gamma pass ${fix(gs.pass, 1)} %` : '');
@@ -1805,7 +1861,116 @@ async function runCompare(live) {
   prog.hidden = true; bar.style.width = '0'; cmp.busy = false; updateCmpButtons();
   if (cmp.again) { cmp.again = false; liveSoon(); }
 }
-function clearResults() { cmp.res = null; for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) $('#' + id)._im = null; for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) { const c = $('#' + id); c.width = 10; c.height = 10; } for (const id of ['rcFilmT', 'rcRefT', 'rcDiffT', 'rcGamT']) $('#' + id).textContent = ''; $('#cmpReport').textContent = 'Run a comparison to see the report.'; $('#cmpRunMsg').textContent = ''; const pc = $('#cmpProf'); pc.getContext('2d').clearRect(0, 0, pc.width, pc.height); $('#pfPos').disabled = true; $('#pfPosT').textContent = ''; updateCmpButtons(); }
+function clearResults() { cmp.res = null; for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) $('#' + id)._im = null; for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) { const c = $('#' + id); c.width = 10; c.height = 10; } for (const id of ['rcFilmT', 'rcRefT', 'rcDiffT', 'rcGamT']) $('#' + id).textContent = ''; $('#cmpReport').textContent = 'Run a comparison to see the report.'; $('#cmpRunMsg').textContent = ''; const pc = $('#cmpProf'); pc.getContext('2d').clearRect(0, 0, pc.width, pc.height); $('#pfPos').disabled = true; $('#pfPosT').textContent = ''; $('#wellPanel').hidden = true; updateCmpButtons(); }
+
+
+/* ------------------------------------------------------------------ compare: ROI (all / drawn region / Corning 48-well plate) */
+cmp.roiRect = null;
+function readRoi() {
+  const f = (id, d) => { const v = parseFloat($('#' + id).value); return isFinite(v) ? v : d; };
+  return { mode: $('#roiMode').value, shape: $('#roiShape').value, rect: cmp.roiRect && { ...cmp.roiRect },
+    plate: { cx: f('wpCx', 0), cy: f('wpCy', 0), rot: f('wpRot', 0), inset: Math.max(0, f('wpInset', 1)), cols: Math.max(1, Math.round(f('wpCols', 8))), rows: Math.max(1, Math.round(f('wpRows', 6))),
+      px: Math.max(1, f('wpPx', 13.08)), py: Math.max(1, f('wpPy', 13.08)), d: Math.max(1, f('wpD', 11.05)) } };
+}
+function wellList(pl) {
+  const th = pl.rot * Math.PI / 180, co = Math.cos(th), si = Math.sin(th), rin = Math.max(0.1, pl.d / 2 - pl.inset), out = [];
+  for (let r = 0; r < pl.rows; r++) for (let c = 0; c < pl.cols; c++) {
+    const lx = (c - (pl.cols - 1) / 2) * pl.px, ly = (r - (pl.rows - 1) / 2) * pl.py;
+    out.push({ id: String.fromCharCode(65 + r) + (c + 1), r, c, x: pl.cx + lx * co - ly * si, y: pl.cy + lx * si + ly * co, rin });
+  }
+  return out;
+}
+// Mask on an analysis grid (ow x oh pixels of s mm; film centre at the grid centre). Returns null for "all".
+function buildRoi(R, ow, oh, s) {
+  if (!R || R.mode === 'all') return null;
+  const N = ow * oh, mask = new Uint8Array(N);
+  if (R.mode === 'rect') {
+    const q = R.rect; if (!q) return null;
+    const x0 = Math.min(q.x0, q.x1), x1 = Math.max(q.x0, q.x1), y0 = Math.min(q.y0, q.y1), y1 = Math.max(q.y0, q.y1), ell = R.shape === 'ellipse', cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, ax = Math.max(1e-6, (x1 - x0) / 2), ay = Math.max(1e-6, (y1 - y0) / 2);
+    for (let j = 0; j < oh; j++) { const y = (j + 0.5 - oh / 2) * s; if (y < y0 || y > y1) continue; for (let i = 0; i < ow; i++) { const x = (i + 0.5 - ow / 2) * s; if (x < x0 || x > x1) continue; if (ell && ((x - cx) / ax) ** 2 + ((y - cy) / ay) ** 2 > 1) continue; mask[j * ow + i] = 1; } }
+    return { mask, wells: null, wi: null };
+  }
+  const wells = wellList(R.plate), wi = new Int16Array(N).fill(-1);
+  wells.forEach((w, q) => {
+    const i0 = Math.max(0, Math.floor((w.x - w.rin) / s + ow / 2 - 0.5)), i1 = Math.min(ow - 1, Math.ceil((w.x + w.rin) / s + ow / 2 - 0.5)), j0 = Math.max(0, Math.floor((w.y - w.rin) / s + oh / 2 - 0.5)), j1 = Math.min(oh - 1, Math.ceil((w.y + w.rin) / s + oh / 2 - 0.5));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const x = (i + 0.5 - ow / 2) * s, y = (j + 0.5 - oh / 2) * s; if ((x - w.x) ** 2 + (y - w.y) ** 2 <= w.rin * w.rin) { mask[j * ow + i] = 1; wi[j * ow + i] = q; } }
+  });
+  return { mask, wells, wi };
+}
+function wellStats(roi, A, B, valid) {
+  if (!roi || !roi.wells) return null;
+  const W = roi.wells.map(w => ({ id: w.id, r: w.r, c: w.c, x: w.x, y: w.y, n: 0, sf: 0, sff: 0, sr: 0 }));
+  for (let k = 0; k < roi.wi.length; k++) { const q = roi.wi[k]; if (q < 0 || !valid[k]) continue; const w = W[q], a = A[k], b = B[k]; w.n++; w.sf += a; w.sff += a * a; w.sr += b; }
+  for (const w of W) { if (w.n > 0) { w.meanF = w.sf / w.n; w.meanR = w.sr / w.n; w.sdF = Math.sqrt(Math.max(0, (w.sff - w.n * w.meanF * w.meanF) / Math.max(1, w.n - 1))); w.diff = w.meanF - w.meanR; w.ratio = w.meanR > 0 ? w.meanF / w.meanR : NaN; w.pct = w.meanR > 0 ? 100 * w.diff / w.meanR : NaN; } else { w.meanF = w.meanR = w.sdF = w.diff = w.ratio = w.pct = NaN; } }
+  return W;
+}
+function roiSummary() {
+  const R = readRoi(); if (R.mode === 'all') return 'Entire image.';
+  if (R.mode === 'rect') return R.rect ? `${R.shape === 'ellipse' ? 'Ellipse' : 'Rectangle'} ROI, x ${fix(Math.min(R.rect.x0, R.rect.x1), 1)} to ${fix(Math.max(R.rect.x0, R.rect.x1), 1)} mm, y ${fix(Math.min(R.rect.y0, R.rect.y1), 1)} to ${fix(Math.max(R.rect.y0, R.rect.y1), 1)} mm (from film centre).` : 'No ROI drawn yet: the whole image is used. Drag on a map to draw one.';
+  const P = R.plate; return `${P.rows * P.cols} wells (${P.rows} × ${P.cols}), analysed circle radius ${fix(Math.max(0.1, P.d / 2 - P.inset), 2)} mm (well diameter ${fix(P.d, 2)} mm, ${fix(P.inset, 2)} mm inset); plate centre (${fix(P.cx, 1)}, ${fix(P.cy, 1)}) mm, rotation ${fix(P.rot, 1)}°.`;
+}
+function roiChanged() {
+  const m = $('#roiMode').value; $('#roiRectBox').hidden = m !== 'rect'; $('#roiWellBox').hidden = m !== 'well48'; $('#roiInfo').textContent = roiSummary();
+  if (cmp.res) liveSoon();
+}
+function syncRectInputs() { const q = cmp.roiRect; for (const [id, k] of [['roiX0', 'x0'], ['roiX1', 'x1'], ['roiY0', 'y0'], ['roiY1', 'y1']]) $('#' + id).value = q ? (Math.round(q[k] * 100) / 100) : ''; }
+$('#roiMode').addEventListener('change', () => { roiChanged(); drawProfile(); });
+$('#roiShape').addEventListener('change', () => { roiChanged(); drawProfile(); });
+for (const id of ['roiX0', 'roiX1', 'roiY0', 'roiY1']) $('#' + id).addEventListener('input', () => {
+  const g = i => parseFloat($('#' + i).value); const v = [g('roiX0'), g('roiX1'), g('roiY0'), g('roiY1')];
+  cmp.roiRect = v.every(isFinite) ? { x0: v[0], x1: v[1], y0: v[2], y1: v[3] } : null; roiChanged(); drawProfile();
+});
+$('#roiClear').onclick = () => { cmp.roiRect = null; syncRectInputs(); roiChanged(); drawProfile(); };
+for (const id of ['wpCx', 'wpCy', 'wpRot', 'wpInset', 'wpCols', 'wpRows', 'wpPx', 'wpPy', 'wpD']) $('#' + id).addEventListener('input', () => { roiChanged(); drawProfile(); });
+$('#wpCentre').onclick = () => { $('#wpCx').value = 0; $('#wpCy').value = 0; roiChanged(); drawProfile(); };
+// overlay on the four result maps
+function drawRoiOverlay(g, r, cw, ch, label) {
+  const R = readRoi(); if (R.mode === 'all') return; const kx = cw / (r.ow * r.s), ky = ch / (r.oh * r.s), X = x => cw / 2 + x * kx, Y = y => ch / 2 + y * ky;
+  g.save(); g.lineWidth = 1.5; g.strokeStyle = '#ff4fd8'; g.fillStyle = '#ff4fd8';
+  if (R.mode === 'rect') {
+    const q = R.rect; if (q) { const x0 = Math.min(q.x0, q.x1), x1 = Math.max(q.x0, q.x1), y0 = Math.min(q.y0, q.y1), y1 = Math.max(q.y0, q.y1); g.beginPath(); if (R.shape === 'ellipse') g.ellipse(X((x0 + x1) / 2), Y((y0 + y1) / 2), Math.max(1, (x1 - x0) / 2 * kx), Math.max(1, (y1 - y0) / 2 * ky), 0, 0, 2 * Math.PI); else g.rect(X(x0), Y(y0), (x1 - x0) * kx, (y1 - y0) * ky); g.stroke(); }
+  } else {
+    const wl = wellList(R.plate); g.font = '10px ' + css('--mono'); g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const w of wl) { g.beginPath(); g.ellipse(X(w.x), Y(w.y), w.rin * kx, w.rin * ky, 0, 0, 2 * Math.PI); g.stroke(); if (label && w.rin * kx > 13) { g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.65)'; g.strokeText(w.id, X(w.x), Y(w.y)); g.lineWidth = 1.5; g.strokeStyle = '#ff4fd8'; g.fillStyle = '#fff'; g.fillText(w.id, X(w.x), Y(w.y)); } }
+  }
+  g.restore();
+}
+// drag on a map: draw the ROI (Select ROI) or move the plate (Inside Well-48)
+function roiPointer(c) {
+  let st = null;
+  const pos = e => { const r = cmp.res, b = c.getBoundingClientRect(); return { x: ((e.clientX - b.left) / b.width * r.ow - r.ow / 2) * r.s, y: ((e.clientY - b.top) / b.height * r.oh - r.oh / 2) * r.s }; };
+  c.addEventListener('pointerdown', e => {
+    const m = $('#roiMode').value; if (!cmp.res || m === 'all') return; const p = pos(e); cmp.roiDragged = false;
+    st = { m, p0: p, cx: parseFloat($('#wpCx').value) || 0, cy: parseFloat($('#wpCy').value) || 0 }; c.setPointerCapture(e.pointerId); e.stopImmediatePropagation();
+  }, true);
+  c.addEventListener('pointermove', e => {
+    if (!st || !(e.buttons & 1)) return; const p = pos(e); e.stopImmediatePropagation(); cmp.roiDragged = true;
+    if (st.m === 'rect') { cmp.roiRect = { x0: st.p0.x, y0: st.p0.y, x1: p.x, y1: p.y }; syncRectInputs(); }
+    else { $('#wpCx').value = Math.round((st.cx + p.x - st.p0.x) * 100) / 100; $('#wpCy').value = Math.round((st.cy + p.y - st.p0.y) * 100) / 100; }
+    $('#roiInfo').textContent = roiSummary(); drawProfile(); liveSoon();
+  }, true);
+  const end = () => { st = null; }; c.addEventListener('pointerup', end, true); c.addEventListener('pointercancel', end, true);
+  c.addEventListener('click', e => { if (cmp.roiDragged) { e.stopImmediatePropagation(); cmp.roiDragged = false; } }, true);
+}
+for (const id of ['rcFilm', 'rcRef', 'rcDiff', 'rcGam']) roiPointer($('#' + id));
+// per-well table
+function renderWells() {
+  const r = cmp.res, pan = $('#wellPanel'); if (!r || !r.wells) { pan.hidden = true; $('#wellCsv').disabled = true; return; }
+  pan.hidden = false; $('#wellCsv').disabled = false; const R = r.P.roi.plate, W = r.wells, met = $('#wellMetric').value, u = r.stats.units === 'Gy' ? 'Gy' : '%', dr = (r.P.mode === 'none' ? r.stats.Dn : 100) * Math.max(0.1, parseFloat($('#diffRange').value) || 10) / 100;
+  const val = w => ({ diff: w.diff, pct: w.pct, ratio: w.ratio, film: w.meanF, ref: w.meanR })[met], dec = met === 'ratio' ? 3 : (met === 'pct' ? 1 : 2);
+  const tint = w => { const v = val(w); if (!isFinite(v)) return ''; if (met === 'diff' || met === 'pct' || met === 'ratio') { const base = met === 'diff' ? v / dr : met === 'pct' ? v / (parseFloat($('#diffRange').value) || 10) : (v - 1) / ((parseFloat($('#diffRange').value) || 10) / 100), t = clamp(base, -1, 1), a = Math.abs(t) * 0.45; return t < 0 ? `background:rgba(44,95,192,${a})` : `background:rgba(196,53,43,${a})`; } return ''; };
+  let h = '<tr><th></th>' + Array.from({ length: R.cols }, (_, c) => `<th>${c + 1}</th>`).join('') + '</tr>';
+  for (let i = 0; i < R.rows; i++) { h += `<tr><th>${String.fromCharCode(65 + i)}</th>`; for (let c = 0; c < R.cols; c++) { const w = W[i * R.cols + c], v = val(w); h += `<td style="${tint(w)}" class="${w.n ? '' : 'off'}" title="${w.id}: film ${fix(w.meanF, 3)} ± ${fix(w.sdF, 3)}, RTDOSE ${fix(w.meanR, 3)}, n = ${w.n} px">${isFinite(v) ? fix(v, dec) : '–'}</td>`; } h += '</tr>'; }
+  $('#wellTab').innerHTML = h;
+  const lab = { diff: `film − RTDOSE (${u})`, pct: 'film − RTDOSE as % of the RTDOSE well mean', ratio: 'film / RTDOSE', film: `film mean (${u})`, ref: `RTDOSE mean (${u})` }[met];
+  $('#wellNote').textContent = `${lab}. Each value is the mean over the circle 1 mm inside the well (hover for film SD and pixel count). Colour scale follows "Difference map range".`.replace('1 mm', fix(R.inset, 2) + ' mm');
+}
+$('#wellMetric').addEventListener('change', renderWells);
+$('#wellCsv').onclick = () => {
+  const r = cmp.res; if (!r || !r.wells) return; const u = r.stats.units, L = ['well,row,col,x_mm,y_mm,n_px,film_mean_' + u + ',film_sd_' + u + ',rtdose_mean_' + u + ',film_minus_rtdose_' + u + ',film_over_rtdose,diff_pct_of_rtdose'];
+  for (const w of r.wells) L.push([w.id, w.r + 1, w.c + 1, fix(w.x, 2), fix(w.y, 2), w.n, fix(w.meanF, 4), fix(w.sdF, 4), fix(w.meanR, 4), fix(w.diff, 4), fix(w.ratio, 4), fix(w.pct, 3)].join(','));
+  saveFile((state.dose.scan ? state.dose.scan.name.replace(/\.[^.]+$/, '') : 'film') + '_per_well_vs_RTDOSE.csv', L.join('\n') + '\n');
+};
 
 /* ------------------------------------------------------------------ compare: drawing */
 function paintMap(id, arr, r, color, extra) {
@@ -1825,7 +1990,7 @@ function decorate(id) {
   if (cmp.ptUsed && r.P.mode === 'point' && (id === 'rcFilm' || id === 'rcRef')) { const p = cmp.ptUsed; ctx.strokeStyle = '#ff4fd8'; ctx.lineWidth = Math.max(1, r.ow / 300); ctx.beginPath(); ctx.moveTo(p.i - 8, p.j); ctx.lineTo(p.i + 8, p.j); ctx.moveTo(p.i, p.j - 8); ctx.lineTo(p.i, p.j + 8); ctx.stroke(); }
   const o = c._ovl; if (!o) return; const dpr = window.devicePixelRatio || 1, cw = c.clientWidth, ch = c.clientHeight; if (!cw || !ch) return;
   if (o.width !== Math.round(cw * dpr) || o.height !== Math.round(ch * dpr)) { o.width = Math.round(cw * dpr); o.height = Math.round(ch * dpr); }
-  const g = o.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, cw, ch);
+  const g = o.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, cw, ch); drawRoiOverlay(g, r, cw, ch, id === 'rcFilm');
   const h = cmp.prof.dir === 'h', col = PROF_COL[cmp.prof.dir], lw = 2, a = 9, p = h ? (cmp.prof.i + 0.5) / r.oh * ch : (cmp.prof.i + 0.5) / r.ow * cw;
   const path = () => { g.beginPath(); if (h) { g.moveTo(0, p); g.lineTo(cw - a, p); } else { g.moveTo(p, 0); g.lineTo(p, ch - a); } };
   const head = () => { g.beginPath(); if (h) { g.moveTo(cw, p); g.lineTo(cw - a * 1.8, p - a * .75); g.lineTo(cw - a * 1.8, p + a * .75); } else { g.moveTo(p, ch); g.lineTo(p - a * .75, ch - a * 1.8); g.lineTo(p + a * .75, ch - a * 1.8); } g.closePath(); };
@@ -1840,7 +2005,7 @@ function drawResults() {
   if (r.gam) paintMap('rcGam', r.gam, r, g => { const t = clamp(g / 2, 0, 1); return t < 0.5 ? [38 + t * 2 * 207, 166 + t * 2 * 44, 91 - t * 2 * 41] : [245 - (t - .5) * 2 * 45, 210 - (t - .5) * 2 * 170, 50 - (t - .5) * 2 * 10]; }, 'gamma');
   else { const c = $('#rcGam'); c.width = 10; c.height = 10; c._im = null; }
   $('#rcFilmT').textContent = `0–${fix(top, 0)} ${u}`; $('#rcRefT').textContent = `0–${fix(top, 0)} ${u} · dim = below threshold`; $('#rcDiffT').textContent = `±${fix(dr, 1)} ${u}`; $('#rcGamT').textContent = r.gam ? `0–2 · ${r.P.gPct}%/${r.P.gDta} mm ${r.P.gType}` : r.live ? 'press Compare to update' : 'off';
-  drawProfile();
+  drawProfile(); renderWells();
 }
 function profData() {
   const r = cmp.res; if (!r) return null; const h = cmp.prof.dir === 'h', len = h ? r.ow : r.oh, i0 = cmp.prof.i, out = [];
@@ -1902,6 +2067,7 @@ function buildReport(forExport) {
   L.push('', '[Normalization]', `Mode: ${modeTxt}`);
   if (P.mode !== 'none') L.push(`Film normalization dose: ${fix(S.nf, 4)} Gy   RTDOSE normalization dose: ${fix(S.nr, 4)} Gy   (both set to 100 %)`);
   L.push(`Threshold: pixels with RTDOSE below ${P.thr} % of ${P.mode === 'none' ? 'the RTDOSE maximum in the film area (' + fix(S.rMax, 3) + ' Gy)' : 'the normalization'} are ignored`);
+  L.push(`ROI: ${r.roiTxt}`);
   L.push(`Pixels compared: ${S.ni} of ${S.nv} overlapping (${fix(S.area, 2)} cm2)`);
   L.push('', `[Global dose discrepancy: film - RTDOSE, in ${u}]`);
   const d = x => fix(x, 3);
@@ -1909,6 +2075,7 @@ function buildReport(forExport) {
   L.push(`Mean dose, film / RTDOSE:  ${d(S.meanF)} / ${d(S.meanR)}   (ratio ${fix(S.ratio, 4)})`);
   L.push(`Maximum dose, film / RTDOSE: ${d(S.fMax)} / ${d(S.rMax)} Gy   (ratio ${fix(S.fMax / S.rMax, 4)})`);
   L.push(`Pixels within 1 / 2 / 3 / 5 % of ${P.mode === 'none' ? 'RTDOSE max' : 'normalization'}:  ${fix(S.w1, 1)} / ${fix(S.w2, 1)} / ${fix(S.w3, 1)} / ${fix(S.w5, 1)} %`);
+  if (r.wells) { L.push('', `[Per-well results (${S.units === 'Gy' ? 'Gy' : '% of normalization'}); threshold not applied]`, 'well\tn_px\tfilm_mean\tfilm_sd\trtdose_mean\tfilm-rtdose\tfilm/rtdose\tdiff_%_of_rtdose'); for (const w of r.wells) L.push([w.id, w.n, d(w.meanF), d(w.sdF), d(w.meanR), d(w.diff), fix(w.ratio, 4), fix(w.pct, 2)].join('\t')); }
   if (r.gs) { const G = r.gs; L.push('', `[Gamma ${P.gPct} % / ${P.gDta} mm, ${P.gType}, reference = ${P.gRef === 'film' ? 'film' : 'RTDOSE'}]`, `Pass rate (gamma <= 1): ${fix(G.pass, 2)} %  (${G.n} pixels)`, `Mean gamma: ${fix(G.mean, 3)}   95th percentile: ${fix(G.p95, 3)}   Max (capped at 2): ${fix(G.max, 2)}`, `Pixels with no match within 2 x DTA (gamma set to 2): ${G.capped}`, `Dose criterion: ${P.gType === 'global' ? P.gPct + ' % of ' + (P.mode === 'none' ? fix(S.Dn, 3) + ' Gy' : 'the normalization dose') : P.gPct + ' % of the local reference dose'}`); }
   if (forExport) { const pd = profData(); L.push('', `[Profile: ${cmp.prof.dir === 'h' ? 'row' : 'column'} ${cmp.prof.i}]`, `pos_mm\tfilm_${S.units}\trtdose_${S.units}\tdiff\tgamma\tincluded`); for (const p of pd) L.push([fix(p.pos, 3), d(p.film), d(p.ref), d(p.film - p.ref), isFinite(p.gam) ? fix(p.gam, 3) : '', p.inc ? 1 : 0].join('\t')); }
   return L.join('\n');
@@ -1986,17 +2153,18 @@ function makeShiftCost(P, F, metric) {
   const vol = cmp.vol, n = cmp.normal, [ua, va] = planeAxes(n), vs = planeVSign(n), nval = cmp.pos[n], ow = F.ow, oh = F.oh, s = F.s, N = ow * oh;
   const AO = new Float32Array(N), BO = new Float32Array(N), R = new Float32Array(N), film = F.data;
   for (let j = 0; j < oh; j++) for (let i = 0; i < ow; i++) { const [a, b] = orient((i + 0.5 - ow / 2) * s, (j + 0.5 - oh / 2) * s, P.flip, P.rot), k = j * ow + i; AO[k] = a; BO[k] = vs * b; }
-  let fMax = 0; for (let k = 0; k < N; k++) if (isFinite(film[k]) && film[k] > fMax) fMax = film[k];
+  const ROI = buildRoi(P.roi, ow, oh, s), inR = ROI ? ROI.mask : null;
+  let fMax = 0; for (let k = 0; k < N; k++) if (isFinite(film[k]) && (!inR || inR[k]) && film[k] > fMax) fMax = film[k];
   return (shx, shy) => {
     const [a0, b0] = orient(shx, shy, P.flip, P.rot), cu = cmp.pos[ua] + a0, cv = cmp.pos[va] + vs * b0 * 1;   // same convention as planeShift()
     let rMax = 0;
-    for (let k = 0; k < N; k++) { const r = sampleAt(vol, n, nval, cu + AO[k], cv + BO[k]); R[k] = r; if (r > rMax) rMax = r; }
+    for (let k = 0; k < N; k++) { if (inR && !inR[k]) { R[k] = NaN; continue; } const r = sampleAt(vol, n, nval, cu + AO[k], cv + BO[k]); R[k] = r; if (r > rMax) rMax = r; }
     if (!(rMax > 0)) return { cost: Infinity, ni: 0 };
     let nf = 1, nr = 1; if (P.mode !== 'none') { nf = fMax; nr = rMax; }
-    if (P.mode === 'high') { let sf = 0, cf = 0, sr = 0, cr = 0; for (let k = 0; k < N; k++) { if (film[k] >= P.high / 100 * fMax) { sf += film[k]; cf++; } if (R[k] >= P.high / 100 * rMax) { sr += R[k]; cr++; } } if (cf && cr) { nf = sf / cf; nr = sr / cr; } }
+    if (P.mode === 'high') { let sf = 0, cf = 0, sr = 0, cr = 0; for (let k = 0; k < N; k++) { if (inR && !inR[k]) continue; if (film[k] >= P.high / 100 * fMax) { sf += film[k]; cf++; } if (R[k] >= P.high / 100 * rMax) { sr += R[k]; cr++; } } if (cf && cr) { nf = sf / cf; nr = sr / cr; } }
     const gf = P.mode === 'none' ? 1 : 100 / nf, gr = P.mode === 'none' ? 1 : 100 / nr, Dn = P.mode === 'none' ? fMax : 100, thr = P.thr / 100 * Dn;
     let sum = 0, ni = 0;   // fixed film pixel set (film above threshold); RTDOSE outside the grid counts as 0
-    for (let k = 0; k < N; k++) { const f = film[k] * gf; if (!isFinite(film[k]) || f < thr) continue; const r = isFinite(R[k]) ? R[k] * gr : 0, d = f - r; sum += metric === 'l2' ? d * d : Math.abs(d); ni++; }
+    for (let k = 0; k < N; k++) { if (inR && !inR[k]) continue; const f = film[k] * gf; if (!isFinite(film[k]) || f < thr) continue; const r = isFinite(R[k]) ? R[k] * gr : 0, d = f - r; sum += metric === 'l2' ? d * d : Math.abs(d); ni++; }
     return { cost: ni ? sum : Infinity, ni, mean: ni ? sum / ni : Infinity };
   };
 }
@@ -2109,5 +2277,5 @@ window.addEventListener('resize', () => document.querySelectorAll('#fits canvas'
 /* boot */
 setRenormUI(); updateWeightUI(); updatePxInfo(); drawColorbar();
 requestAnimationFrame(() => { calView.resize(); doseView.resize(); loadExample(); });
-window.__app = { optimizeShift, cmp, volAt, parseRtDose, runCompare, autoAlign, openRtDose, state, fitCurve, buildTiff, buildDicom, loadExample, convert, doseView, setAngle };
+window.__app = { readRoi, buildRoi, wellList, optimizeShift, cmp, volAt, parseRtDose, runCompare, autoAlign, openRtDose, state, fitCurve, buildTiff, buildDicom, loadExample, convert, doseView, setAngle };
 </script>
